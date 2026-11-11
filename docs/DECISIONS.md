@@ -12,3 +12,11 @@
 | 2026-11-08 | Free cancellation until 24 h; 50% after or no-show | Carried over from the original design |
 | 2026-11-11 | Publisher ("Seller") on both stores is **HairDay, Inc.**, enrolled as an organization; D-U-N-S on file | Owner's choice (Open question 5). Company name on the listing, and avoids Google Play's closed-test rule for new personal accounts. Use the legal name exactly as D&B lists it |
 | 2026-11-11 | Domain is **hairday.app** (registered at GoDaddy) — company website, privacy/terms pages, and later share links | Owner's choice (part of Open question 4). Apple's organization enrollment needs a company website |
+| 2026-11-11 | Bundle ID / package name **app.hairday** (iOS and Android) | Owner's choice (Open question 4). Reverse of the domain we own; can never change after release |
+| 2026-11-11 | Expo **SDK 58** (not 57 as SPEC §4 says) | Latest stable SDK when Phase 1 started (released 2026-09-29); CLAUDE.md says use the latest stable |
+| 2026-11-11 | Screens live in `src/app/` (Expo SDK 58 template layout) instead of `app/` | Current Expo convention; the rest of the suggested layout (`src/components`, `src/lib`, …) is unchanged |
+| 2026-11-11 | Added an **"Enter your email"** step between Welcome and Verify | The designs go straight from "Continue with email" to the code screen, but the email has to be collected somewhere. Styled like Verify.html |
+| 2026-11-11 | Session stored in the phone's secure storage, split into chunks | SecureStore holds ~2 KB per item; a Supabase session is bigger. Chunking avoids two extra libraries (CLAUDE.md: no libraries for a few lines of code) |
+| 2026-11-11 | Fonts loaded with `useFonts` while the splash screen shows | Keeps one font name per weight on both platforms, matching the SPEC §5 tokens |
+| 2026-11-11 | RLS tests are plain SQL run on a throwaway local Postgres (`npm run test:db`) | Docker isn't installed, so Supabase's local stack can't run on this Mac yet. 34 checks, all passing |
+| 2026-11-11 | Google sign-in button shows "coming soon" until the Google Cloud keys exist | The native Google SDK's config plugin needs the iOS client ID at build time (Phase 0) |
