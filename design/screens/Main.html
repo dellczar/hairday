@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hairday · Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#171826}a:hover{color:#8F5A0E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F4EE; color: #171826; font-family: Inter, system-ui, sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column">
+  <div style="padding: 56px 20px 0; display: flex; flex-direction: column; gap: 20px; flex-grow: 1">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <img src="../brand/logo-on-light.png" alt="Hairday" style="width: 100px; height: 55px; display: block; margin-left: -8px">
+      <button type="button" style="display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px; border: 1px solid #E5DFD5; border-radius: 999px; background: #FFFFFF; font: 500 14px Inter, sans-serif; color: #171826">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+        New York
+      </button>
+    </div>
+    <div>
+      <h1 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 44px; line-height: 1.02; letter-spacing: -1px">Book your <em style="color: #8F5A0E">next look.</em></h1>
+      <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.45; color: #5D6070">Salons, barbers and stylists near you, booked in under a minute.</p>
+    </div>
+    <label style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; background: #FFFFFF; border: 1px solid #E5DFD5; border-radius: 16px; color: #5D6070">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search</span>
+      <input type="search" placeholder="Service, salon or stylist" style="border: 0; outline: none; background: transparent; font: 400 15px Inter, sans-serif; color: #171826; flex-grow: 1">
+    </label>
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Services</h2>
+      <a href="Results.html" style="font-size: 14px; font-weight: 500">See all</a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+      <a href="Results.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #171826"><div style="height: 84px; border-radius: 16px; background: #D8CCBF"></div><span style="font-size: 13px; font-weight: 500">Haircut</span></a>
+      <a href="Results.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #171826"><div style="height: 84px; border-radius: 16px; background: #C9B9A8"></div><span style="font-size: 13px; font-weight: 500">Braids</span></a>
+      <a href="Results.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #171826"><div style="height: 84px; border-radius: 16px; background: #E2D6C9"></div><span style="font-size: 13px; font-weight: 500">Nails</span></a>
+      <a href="Results.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #171826"><div style="height: 84px; border-radius: 16px; background: #BFAE9C"></div><span style="font-size: 13px; font-weight: 500">Lashes</span></a>
+      <a href="Results.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #171826"><div style="height: 84px; border-radius: 16px; background: #D3C4B4"></div><span style="font-size: 13px; font-weight: 500">Brows</span></a>
+      <a href="Results.html" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #171826"><div style="height: 84px; border-radius: 16px; background: #C4B3A2"></div><span style="font-size: 13px; font-weight: 500">Makeup</span></a>
+    </div>
+    <a href="MyBookings.html" style="background: #171826; color: #F7F4EE; border-radius: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; text-decoration: none">
+      <div style="width: 52px; height: 52px; border-radius: 14px; background: {{accent}}; color: #171826; display: flex; flex-direction: column; align-items: center; justify-content: center">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 1px">NOV</span>
+        <span style="font-family: 'Instrument Serif', serif; font-size: 24px; line-height: 1">14</span>
+      </div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 12px; color: #AEB1C2">Your next appointment</span>
+        <span style="font-size: 15px; font-weight: 600">Adult cut · Lisa's Salon</span>
+        <span style="font-size: 13px; color: #AEB1C2">Sat, 2:30 PM with April</span>
+      </div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+    </a>
+  </div>
+  <nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 8px 26px; background: #FFFFFF; border-top: 1px solid #E5DFD5">
+    <a href="Main.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #171826; font-size: 11px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 10l8-6 8 6v10h-5v-6H9v6H4z"></path></svg>Home</a>
+    <a href="Results.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>Explore</a>
+    <a href="MyBookings.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>Bookings</a>
+    <a href="Profile.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>Profile</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4A942","options":["#F4A942","#171826","#D58E39"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#F4A942' };
+  }
+}
+</script>
+</body>
+</html>

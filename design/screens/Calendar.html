@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hairday · Owner calendar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#171826}a:hover{color:#8F5A0E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F4EE; color: #171826; font-family: Inter, system-ui, sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column">
+  <div style="padding: 56px 20px 0; display: flex; flex-direction: column; gap: 14px; flex-grow: 1">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 36px; line-height: 1">November</h1>
+      <button type="button" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #E5DFD5; background: #FFFFFF; font: 600 13px Inter, sans-serif; color: #171826">Today</button>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+      <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+        <button type="button" onClick="{{d.pick}}" aria-pressed="{{d.on}}" style="height: 56px; border-radius: 14px; border: 0; background: {{d.bg}}; color: {{d.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0; font-family: Inter, sans-serif">
+          <span style="font-size: 11px">{{d.d}}</span><span style="font-size: 17px; font-weight: 600">{{d.n}}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display: grid; grid-template-columns: 36px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center">
+      <span></span>
+      <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><span style="width: 24px; height: 24px; border-radius: 50%; background: #D8CCBF; display: flex; align-items: center; justify-content: center; font-size: 10px">AO</span>April</span>
+      <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><span style="width: 24px; height: 24px; border-radius: 50%; background: #C9B9A8; display: flex; align-items: center; justify-content: center; font-size: 10px">MT</span>Marcus</span>
+      <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><span style="width: 24px; height: 24px; border-radius: 50%; background: #E2D6C9; display: flex; align-items: center; justify-content: center; font-size: 10px">JK</span>Jade</span>
+    </div>
+    <div style="position: relative; height: 416px">
+      <sc-for list="{{hours}}" as="h" hint-placeholder-count="8">
+        <div style="position: absolute; left: 0; right: 0; top: {{h.top}}; height: 52px; border-top: 1px solid #ECE6DC; box-sizing: border-box">
+          <span style="font-size: 11px; color: #5D6070; position: relative; top: -7px; background: #F7F4EE; padding-right: 4px">{{h.label}}</span>
+        </div>
+      </sc-for>
+      <div style="position: absolute; left: 42px; right: 0; top: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+        <div style="position: relative">
+          <div style="position: absolute; left: 0; right: 0; top: 54px; height: 24px; border-radius: 8px; background: #EADBCF; padding: 3px 6px; box-sizing: border-box; font-size: 11px; font-weight: 600; overflow: hidden">Dana T. · cut</div>
+          <div style="position: absolute; left: 0; right: 0; top: 288px; height: 24px; border-radius: 8px; background: {{accent}}; color: #171826; padding: 3px 6px; box-sizing: border-box; font-size: 11px; font-weight: 600; overflow: hidden">Anna D. · new</div>
+        </div>
+        <div style="position: relative">
+          <div style="position: absolute; left: 0; right: 0; top: 117px; height: 37px; border-radius: 8px; background: #E2D6C8; padding: 4px 6px; box-sizing: border-box; font-size: 11px; line-height: 1.3; overflow: hidden"><strong>Charlie B.</strong><br>Cut &amp; shampoo</div>
+          <div style="position: absolute; left: 0; right: 0; top: 210px; height: 50px; border-radius: 8px; border: 1.5px dashed #CBBFB2; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5D6070">Open</div>
+        </div>
+        <div style="position: relative">
+          <div style="position: absolute; left: 0; right: 0; top: 234px; height: 154px; border-radius: 8px; background: #E6D5CB; padding: 6px; box-sizing: border-box; font-size: 11px; line-height: 1.35; overflow: hidden"><strong>Bob G.</strong><br>Box braids<br>1:30 – 4:30</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button type="button" onClick="{{openNew}}" style="position: absolute; right: 20px; bottom: 104px; height: 52px; padding: 0 20px; border-radius: 999px; border: 0; background: #171826; color: #FFFFFF; font: 600 15px Inter, sans-serif; display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 20px rgba(23,24,38,.25)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Walk-in</button>
+  <nav aria-label="Business" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 8px 26px; background: #FFFFFF; border-top: 1px solid #E5DFD5">
+    <a href="OwnerToday.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #171826; font-size: 11px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>Today</a>
+    <a href="Availability.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>Hours</a>
+    <a href="Clients.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.7 3 2.5 3.5 5.2"></path></svg>Clients</a>
+    <a href="BizProfile.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l2-5h12l2 5M4 9v11h16V9M4 9h16"></path></svg>Business</a>
+  </nav>
+
+  <sc-if value="{{newOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(23,24,38,.45)">
+      <div role="dialog" aria-label="New appointment" style="position: absolute; left: 0; right: 0; bottom: 0; background: #F7F4EE; border-radius: 28px 28px 0 0; padding: 10px 20px 30px; display: flex; flex-direction: column; gap: 14px">
+        <div style="width: 40px; height: 5px; border-radius: 3px; background: #CBBFB2; margin: 0 auto"></div>
+        <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-family: 'Instrument Serif', serif; font-size: 28px">New appointment</span><button type="button" aria-label="Close" onClick="{{closeNew}}" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #171826; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Client<input value="Dana Thomas" style="height: 50px; border: 1px solid #E5DFD5; border-radius: 14px; background: #FFFFFF; padding: 0 14px; font: 400 15px Inter, sans-serif; color: #171826"></label>
+        <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 600">Service</span><button type="button" style="height: 50px; border: 1px solid #E5DFD5; border-radius: 14px; background: #FFFFFF; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; font: 400 15px Inter, sans-serif; color: #171826">Adult cut · 30 min · $30<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5D6070" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 600">With</span>
+          <div style="display: flex; gap: 8px">
+            <sc-for list="{{pros}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.on}}" onClick="{{p.pick}}" style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid {{p.bd}}; background: {{p.bg}}; color: {{p.fg}}; font: 500 14px Inter, sans-serif">{{p.label}}</button></sc-for>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 600">Next open times</span>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+            <sc-for list="{{slots}}" as="s" hint-placeholder-count="4"><button type="button" aria-pressed="{{s.on}}" onClick="{{s.pick}}" style="height: 42px; border-radius: 12px; border: 1px solid {{s.bd}}; background: {{s.bg}}; color: {{s.fg}}; font: 500 13px Inter, sans-serif; padding: 0">{{s.label}}</button></sc-for>
+          </div>
+        </div>
+        <button type="button" onClick="{{closeNew}}" style="height: 54px; border-radius: 999px; border: 0; background: {{accent}}; color: #171826; font: 600 15px Inter, sans-serif">Add to calendar</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4A942","options":["#F4A942","#171826","#D58E39"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { day: 6, open: false, pro: 'Marcus', slot: '1:00 PM' };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4A942';
+    const s = this.state || { day: 6, open: false, pro: 'Marcus', slot: '1:00 PM' };
+    const chip = (on) => ({ bg: on ? '#171826' : '#FFFFFF', fg: on ? '#FFFFFF' : '#171826', bd: on ? '#171826' : '#E5DFD5' });
+    const days = [['S', 8], ['M', 9], ['T', 10], ['W', 11], ['T', 12], ['F', 13], ['S', 14]].map(([d, n], i) => {
+      const on = s.day === i;
+      return { d, n, on, bg: on ? '#171826' : '#FFFFFF', fg: on ? '#FFFFFF' : '#171826', pick: () => this.setState({ day: i }) };
+    });
+    const hours = ['9 AM', '10', '11', '12 PM', '1', '2', '3', '4'].map((label, i) => ({ label, top: (i * 52) + 'px' }));
+    const pros = ['April', 'Marcus', 'Jade'].map((label) => ({ label, on: s.pro === label, ...chip(s.pro === label), pick: () => this.setState({ pro: label }) }));
+    const slots = ['1:00 PM', '1:15 PM', '1:30 PM', '4:30 PM'].map((label) => ({ label, on: s.slot === label, ...chip(s.slot === label), pick: () => this.setState({ slot: label }) }));
+    return {
+      accent, days, hours, pros, slots,
+      newOpen: !!s.open,
+      openNew: () => this.setState({ open: true }),
+      closeNew: () => this.setState({ open: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

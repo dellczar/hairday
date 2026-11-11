@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hairday · Set up your business</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#171826}a:hover{color:#8F5A0E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F4EE; color: #171826; font-family: Inter, system-ui, sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 52px 20px 34px">
+  <div style="display: flex; align-items: center; gap: 12px">
+    <button type="button" aria-label="Back" onClick="{{back}}" style="width: 44px; height: 44px; border-radius: 50%; background: #FFFFFF; border: 1px solid #E5DFD5; display: flex; align-items: center; justify-content: center; color: #171826; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+    <div style="flex-grow: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{bars}}" as="b" hint-placeholder-count="3"><div style="height: 4px; border-radius: 2px; background: {{b.c}}"></div></sc-for>
+    </div>
+    <span style="font-size: 13px; color: #5D6070; width: 44px; text-align: right">{{stepLabel}}</span>
+  </div>
+
+  <sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; flex-direction: column; gap: 18px; margin-top: 26px">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 38px; line-height: 1.02; letter-spacing: -0.8px">Tell us about<br>your <em style="color: #8F5A0E">business.</em></h1>
+      <button type="button" style="align-self: flex-start; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; padding: 0; font: 600 14px Inter, sans-serif; color: #171826"><span style="width: 64px; height: 64px; border-radius: 18px; border: 1.5px dashed #CBBFB2; display: flex; align-items: center; justify-content: center; color: #5D6070"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>Add your logo</button>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Business name<input value="Lisa's Salon" style="height: 52px; border: 1px solid #E5DFD5; border-radius: 14px; background: #FFFFFF; padding: 0 14px; font: 400 15px Inter, sans-serif; color: #171826"></label>
+      <div style="display: flex; flex-direction: column; gap: 8px"><span style="font-size: 13px; font-weight: 600">What kind of business?</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{types}}" as="t" hint-placeholder-count="6"><button type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font: 500 14px Inter, sans-serif">{{t.label}}</button></sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 26px">
+      <h1 style="margin: 0 0 4px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 38px; line-height: 1.02; letter-spacing: -0.8px">Where can clients<br><em style="color: #8F5A0E">find you?</em></h1>
+      <button type="button" style="height: 48px; border-radius: 14px; border: 1px solid #E5DFD5; background: #FFFFFF; display: flex; align-items: center; gap: 10px; padding: 0 14px; font: 600 14px Inter, sans-serif; color: #171826"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"></path></svg>Use my current location</button>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Street address<input value="555 Main St" style="height: 52px; border: 1px solid #E5DFD5; border-radius: 14px; background: #FFFFFF; padding: 0 14px; font: 400 15px Inter, sans-serif; color: #171826"></label>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Suite or unit (optional)<input value="Suite 6" style="height: 52px; border: 1px solid #E5DFD5; border-radius: 14px; background: #FFFFFF; padding: 0 14px; font: 400 15px Inter, sans-serif; color: #171826"></label>
+      <div role="img" aria-label="Map preview of the address" style="height: 150px; border-radius: 16px; background: #E6DED3; position: relative; overflow: hidden">
+        <div style="position: absolute; left: 0; right: 0; top: 64px; height: 8px; background: #F4EFE8"></div>
+        <div style="position: absolute; top: 0; bottom: 0; left: 150px; width: 8px; background: #F4EFE8"></div>
+        <div style="position: absolute; left: 138px; top: 38px; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: {{accent}}"></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 26px">
+      <h1 style="margin: 0 0 4px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 38px; line-height: 1.02; letter-spacing: -0.8px">When are<br>you <em style="color: #8F5A0E">open?</em></h1>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="7"><button type="button" aria-pressed="{{d.on}}" aria-label="{{d.full}}" onClick="{{d.pick}}" style="height: 44px; border-radius: 12px; border: 1px solid {{d.bd}}; background: {{d.bg}}; color: {{d.fg}}; font: 600 14px Inter, sans-serif; padding: 0">{{d.short}}</button></sc-for>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #ECE6DC; border-radius: 16px; padding: 0 14px">
+        <div style="display: flex; align-items: center; justify-content: space-between; min-height: 54px; border-bottom: 1px solid #EFEAE2; font-size: 15px"><span>Opens</span><span style="height: 36px; padding: 0 12px; border-radius: 10px; background: #F7F4EE; display: flex; align-items: center; font-weight: 600">10:00 AM</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between; min-height: 54px; font-size: 15px"><span>Closes</span><span style="height: 36px; padding: 0 12px; border-radius: 10px; background: #F7F4EE; display: flex; align-items: center; font-weight: 600">8:00 PM</span></div>
+      </div>
+      <button type="button" style="align-self: flex-start; min-height: 44px; border: 0; background: transparent; padding: 0; font: 600 14px Inter, sans-serif; color: #171826; text-decoration: underline; text-underline-offset: 3px">Set different hours for some days</button>
+      <span style="font-size: 13px; color: #5D6070">{{openSummary}}</span>
+    </div>
+  </sc-if>
+
+  <div style="flex-grow: 1"></div>
+  <button type="button" onClick="{{next}}" style="height: 54px; border-radius: 999px; border: 0; background: #171826; color: #FFFFFF; font: 600 15px Inter, sans-serif">{{nextLabel}}</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4A942","options":["#F4A942","#171826","#D58E39"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 1, type: 'Hair salon', open: [true, true, true, true, true, true, false] };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4A942';
+    const s = this.state || { step: 1, type: 'Hair salon', open: [true, true, true, true, true, true, false] };
+    const chip = (on) => ({ bg: on ? '#171826' : '#FFFFFF', fg: on ? '#FFFFFF' : '#171826', bd: on ? '#171826' : '#E5DFD5' });
+    const types = ['Hair salon', 'Barbershop', 'Braiding', 'Nail salon', 'Lash & brow', 'Makeup'].map((label) => ({
+      label, on: s.type === label, ...chip(s.type === label), pick: () => this.setState({ type: label })
+    }));
+    const full = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((short, i) => ({
+      short, full: full[i], on: s.open[i], ...chip(s.open[i]),
+      pick: () => { const o = s.open.slice(); o[i] = !o[i]; this.setState({ open: o }); }
+    }));
+    const n = s.open.filter(Boolean).length;
+    return {
+      accent, types, days,
+      s1: s.step === 1, s2: s.step === 2, s3: s.step === 3,
+      bars: [1, 2, 3].map((i) => ({ c: i <= s.step ? accent : '#E5DFD5' })),
+      stepLabel: s.step + ' of 3',
+      openSummary: 'Open ' + n + (n === 1 ? ' day' : ' days') + ' a week. You can change this any time.',
+      nextLabel: s.step === 3 ? 'Finish setup' : 'Continue',
+      next: () => this.setState({ step: s.step === 3 ? 1 : s.step + 1 }),
+      back: () => this.setState({ step: s.step === 1 ? 1 : s.step - 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

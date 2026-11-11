@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hairday · Pick a time</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#171826}a:hover{color:#8F5A0E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F4EE; color: #171826; font-family: Inter, system-ui, sans-serif; position: relative; overflow: hidden">
+  <div style="padding: 52px 20px 0; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <a href="Salon.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 50%; background: #FFFFFF; border: 1px solid #E5DFD5; display: flex; align-items: center; justify-content: center; color: #171826; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 17px; font-weight: 600">Pick a time</span>
+        <span style="font-size: 13px; color: #5D6070">Lisa's Salon · Adult cut, 30 min</span>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 15px; font-weight: 600">Who</h2>
+      <div style="display: flex; gap: 14px">
+        <sc-for list="{{pros}}" as="p" hint-placeholder-count="4">
+          <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.pressed}}" style="border: 0; background: transparent; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; font: {{p.weight}} 13px Inter, sans-serif; color: #171826; width: 64px">
+            <span style="width: 56px; height: 56px; border-radius: 50%; box-sizing: border-box; border: 2px solid {{p.ring}}; padding: 3px; display: block">
+              <span style="width: 100%; height: 100%; border-radius: 50%; background: {{p.bg}}; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #171826">{{p.initials}}</span>
+            </span>
+            {{p.name}}
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">When</h2>
+        <span style="font-size: 14px; color: #5D6070">November 2026</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+          <button type="button" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" style="height: 64px; border-radius: 14px; border: 1px solid {{d.bd}}; background: {{d.bg}}; color: {{d.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0; font-family: Inter, sans-serif">
+            <span style="font-size: 12px">{{d.d}}</span>
+            <span style="font-size: 18px; font-weight: 600">{{d.n}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 15px; font-weight: 600">Available times</h2>
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 12px; font-weight: 600; letter-spacing: 1px; color: #5D6070">{{g.label}}</span>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+            <sc-for list="{{g.times}}" as="t" hint-placeholder-count="4">
+              <button type="button" onClick="{{t.pick}}" disabled="{{t.booked}}" aria-pressed="{{t.pressed}}" style="height: 44px; border-radius: 12px; border: 1px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font: 500 13px Inter, sans-serif; text-decoration: {{t.deco}}; padding: 0">{{t.t}}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <span style="font-size: 12px; color: #5D6070">Crossed-out times are already booked.</span>
+    </div>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-top: 1px solid #E5DFD5; padding: 14px 20px 30px; display: flex; align-items: center; justify-content: space-between; gap: 12px">
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #5D6070">{{summaryTop}}</span><span style="font-size: 16px; font-weight: 600">{{summary}}</span></div>
+    <a href="Confirm.html" style="display: flex; align-items: center; height: 50px; padding: 0 22px; border-radius: 999px; background: {{accent}}; color: #171826; text-decoration: none; font-size: 15px; font-weight: 600; flex-shrink: 0">Continue</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4A942","options":["#F4A942","#171826","#D58E39"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { day: 5, time: '2:30 PM', pro: 1 };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4A942';
+    const s = this.state || { day: 5, time: '2:30 PM', pro: 1 };
+    const proList = [
+      { name: 'Anyone', initials: 'Any', bg: '#E6DED3' },
+      { name: 'April', initials: 'AO', bg: '#D8CCBF' },
+      { name: 'Marcus', initials: 'MT', bg: '#C9B9A8' },
+      { name: 'Jade', initials: 'JK', bg: '#E2D6C9' }
+    ];
+    const pros = proList.map((p, i) => ({
+      ...p,
+      pressed: s.pro === i,
+      ring: s.pro === i ? accent : 'transparent',
+      weight: s.pro === i ? '600' : '500',
+      pick: () => this.setState({ pro: i })
+    }));
+    const dayList = [['Mon', 9], ['Tue', 10], ['Wed', 11], ['Thu', 12], ['Fri', 13], ['Sat', 14], ['Sun', 15]];
+    const days = dayList.map(([d, n], i) => {
+      const sel = s.day === i;
+      return {
+        d, n, pressed: sel,
+        bg: sel ? '#171826' : '#FFFFFF',
+        fg: sel ? '#FFFFFF' : '#171826',
+        bd: sel ? '#171826' : '#E5DFD5',
+        pick: () => this.setState({ day: i })
+      };
+    });
+    const booked = ['11:15 AM', '4:00 PM'];
+    const mk = (t) => {
+      const isBooked = booked.indexOf(t) !== -1;
+      const sel = !isBooked && s.time === t;
+      return {
+        t, booked: isBooked, pressed: sel,
+        bg: sel ? accent : (isBooked ? 'transparent' : '#FFFFFF'),
+        fg: sel ? '#171826' : (isBooked ? '#8A8178' : '#171826'),
+        bd: sel ? accent : '#E5DFD5',
+        deco: isBooked ? 'line-through' : 'none',
+        pick: isBooked ? undefined : () => this.setState({ time: t })
+      };
+    };
+    const groups = [
+      ['MORNING', ['9:00 AM', '9:45 AM', '10:30 AM', '11:15 AM']],
+      ['AFTERNOON', ['12:30 PM', '1:15 PM', '2:30 PM', '4:00 PM']],
+      ['EVENING', ['5:30 PM', '6:15 PM', '7:00 PM']]
+    ].map(([label, list]) => ({ label, times: list.map(mk) }));
+    const day = dayList[s.day];
+    const who = s.pro === 0 ? 'any stylist' : proList[s.pro].name;
+    return {
+      accent, pros, days, groups,
+      summaryTop: day[0] + ' ' + day[1] + ' Nov · with ' + who,
+      summary: s.time + ' · $30'
+    };
+  }
+}
+</script>
+</body>
+</html>

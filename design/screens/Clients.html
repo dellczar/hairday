@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hairday · Clients</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#171826}a:hover{color:#8F5A0E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F4EE; color: #171826; font-family: Inter, system-ui, sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column">
+  <div style="padding: 60px 20px 0; display: flex; flex-direction: column; gap: 14px; flex-grow: 1; min-height: 0">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 38px; line-height: 1">Clients</h1>
+      <button type="button" style="height: 44px; padding: 0 16px; border-radius: 999px; border: 0; background: #171826; color: #FFFFFF; font: 600 14px Inter, sans-serif; display: flex; align-items: center; gap: 6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New</button>
+    </div>
+    <label style="display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 14px; background: #FFFFFF; border: 1px solid #E5DFD5; border-radius: 16px; color: #5D6070">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search clients</span>
+      <input type="search" value="{{q}}" onInput="{{onQ}}" placeholder="Name, email or phone" style="border: 0; outline: none; background: transparent; font: 400 15px Inter, sans-serif; color: #171826; flex-grow: 1; min-width: 0">
+    </label>
+    <div style="display: flex; gap: 8px">
+      <span style="height: 34px; padding: 0 12px; border-radius: 999px; background: #171826; color: #FFFFFF; display: flex; align-items: center; font-size: 13px; font-weight: 500">All · 128</span>
+      <span style="height: 34px; padding: 0 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E5DFD5; display: flex; align-items: center; font-size: 13px; font-weight: 500">New this month · 9</span>
+    </div>
+    <div style="display: flex; flex-direction: column">
+      <sc-for list="{{rows}}" as="c" hint-placeholder-count="7">
+        <div style="display: flex; align-items: center; gap: 12px; min-height: 60px; border-bottom: 1px solid #ECE6DC">
+          <span style="width: 40px; height: 40px; border-radius: 50%; background: {{c.bg}}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0">{{c.ini}}</span>
+          <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">{{c.name}}</span><span style="font-size: 13px; color: #5D6070">{{c.meta}}</span></span>
+          <a href="Book.html" aria-label="{{c.bookLabel}}" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #E5DFD5; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #171826"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg></a>
+        </div>
+      </sc-for>
+      <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 40px 10px; text-align: center; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 15px; font-weight: 600">No clients match "{{q}}"</span><span style="font-size: 14px; color: #5D6070">Check the spelling or add them as a new client.</span></div>
+      </sc-if>
+    </div>
+  </div>
+  <nav aria-label="Business" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 8px 26px; background: #FFFFFF; border-top: 1px solid #E5DFD5">
+    <a href="OwnerToday.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>Today</a>
+    <a href="Availability.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>Hours</a>
+    <a href="Clients.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #171826; font-size: 11px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.7 3 2.5 3.5 5.2"></path></svg>Clients</a>
+    <a href="BizProfile.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l2-5h12l2 5M4 9v11h16V9M4 9h16"></path></svg>Business</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q: '' };
+  }
+  renderVals() {
+    const q = (this.state && this.state.q) || '';
+    const all = [
+      ['Anna Doyle', '6 visits · last Nov 14', '#E4D2CA'],
+      ['Bob Gleason', '3 visits · last Nov 14', '#E2D6C8'],
+      ['Charlie Brekke', '11 visits · last Nov 14', '#EADBCF'],
+      ['Dana Langworth', '2 visits · last Oct 30', '#E6D5CB'],
+      ['Dana Thomas', '8 visits · last Nov 14', '#E8E0D3'],
+      ['Ebbie Gaylord', '1 visit · last Oct 2', '#EBE1D6'],
+      ['Henry Corwin', '4 visits · last Sep 18', '#E2D6C8']
+    ];
+    const rows = all
+      .filter(([name]) => name.toLowerCase().indexOf(q.toLowerCase()) !== -1)
+      .map(([name, meta, bg]) => ({
+        name, meta, bg,
+        ini: name.split(' ').map((p) => p[0]).join(''),
+        bookLabel: 'Book ' + name
+      }));
+    return {
+      q, rows,
+      empty: rows.length === 0,
+      onQ: (e) => this.setState({ q: e.target.value })
+    };
+  }
+}
+</script>
+</body>
+</html>

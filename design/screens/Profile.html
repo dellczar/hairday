@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hairday · Profile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#171826}a:hover{color:#8F5A0E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F4EE; color: #171826; font-family: Inter, system-ui, sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column">
+  <div style="padding: 60px 20px 0; display: flex; flex-direction: column; gap: 16px; flex-grow: 1">
+    <div style="display: flex; align-items: center; gap: 14px">
+      <div role="img" aria-label="Profile photo" style="width: 64px; height: 64px; border-radius: 50%; background: #CDB8A6; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 20px; color: #3D2F27">LN</div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Instrument Serif', serif; font-size: 30px; line-height: 1">Lana Nelson</span><span style="font-size: 14px; color: #5D6070">lana@icloud.com</span></div>
+      <button type="button" style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #E5DFD5; background: #FFFFFF; font: 600 13px Inter, sans-serif; color: #171826">Edit</button>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Favorites</h2><span style="font-size: 13px; color: #5D6070">3 salons · 2 pros</span></div>
+    <div style="display: flex; gap: 10px">
+      <a href="Salon.html" style="flex: 1; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #171826; font-size: 13px; font-weight: 500"><div style="height: 84px; border-radius: 16px; background: #C4B3A2"></div>Lisa's Salon</a>
+      <a href="Pro.html" style="flex: 1; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #171826; font-size: 13px; font-weight: 500"><div style="height: 84px; border-radius: 16px; background: #D8CCBF"></div>April Olson</a>
+      <a href="Salon.html" style="flex: 1; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #171826; font-size: 13px; font-weight: 500"><div style="height: 84px; border-radius: 16px; background: #BFAE9C"></div>Hoeger &amp; Tillman</a>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #ECE6DC; border-radius: 20px; padding: 0 16px; margin-top: 6px">
+      <a href="#payment" style="display: flex; align-items: center; gap: 14px; min-height: 56px; border-bottom: 1px solid #EFEAE2; text-decoration: none; font-size: 15px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path></svg><span style="flex-grow: 1">Payment methods</span><span style="font-size: 13px; color: #5D6070">Visa ·· 4242</span></a>
+      <button type="button" onClick="{{toggleReminders}}" role="switch" aria-checked="{{remOn}}" style="width: 100%; display: flex; align-items: center; gap: 14px; min-height: 56px; border: 0; border-bottom: 1px solid #EFEAE2; background: transparent; padding: 0; font: 400 15px Inter, sans-serif; color: #171826; text-align: left"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"></path><path d="M10 20a2 2 0 004 0"></path></svg><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">Reminders<span style="font-size: 12px; color: #5D6070">Push and email · add SMS in settings</span></span><span style="width: 48px; height: 28px; border-radius: 999px; background: {{track}}; box-sizing: border-box; padding: 3px; display: flex; justify-content: {{justify}}"><span style="width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; display: block"></span></span></button>
+      <a href="#location" style="display: flex; align-items: center; gap: 14px; min-height: 56px; border-bottom: 1px solid #EFEAE2; text-decoration: none; font-size: 15px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg><span style="flex-grow: 1">Location</span><span style="font-size: 13px; color: #5D6070">New York</span></a>
+      <a href="#help" style="display: flex; align-items: center; gap: 14px; min-height: 56px; text-decoration: none; font-size: 15px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.5-2.5 2-2.5 3.5M12 17v.5"></path></svg><span style="flex-grow: 1">Help &amp; support</span></a>
+    </div>
+    <a href="Setup.html" style="background: #171826; color: #F7F4EE; border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 14px; text-decoration: none">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px"><span style="font-family: 'Instrument Serif', serif; font-size: 22px; line-height: 1">Own a salon?</span><span style="font-size: 13px; color: #AEB1C2">List your business and take bookings free.</span></div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+    </a>
+    <button type="button" style="min-height: 44px; border: 0; background: transparent; font: 500 14px Inter, sans-serif; color: #5D6070">Sign out</button>
+  </div>
+  <nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 8px 26px; background: #FFFFFF; border-top: 1px solid #E5DFD5">
+    <a href="Main.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 10l8-6 8 6v10h-5v-6H9v6H4z"></path></svg>Home</a>
+    <a href="Results.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>Explore</a>
+    <a href="MyBookings.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>Bookings</a>
+    <a href="Profile.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #171826; font-size: 11px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>Profile</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4A942","options":["#F4A942","#171826","#D58E39"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { rem: true };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4A942';
+    const on = !this.state || this.state.rem !== false;
+    return {
+      accent,
+      remOn: on,
+      track: on ? '#171826' : '#CBBFB2',
+      justify: on ? 'flex-end' : 'flex-start',
+      toggleReminders: () => this.setState({ rem: !on })
+    };
+  }
+}
+</script>
+</body>
+</html>

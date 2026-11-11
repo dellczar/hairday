@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hairday · My bookings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#171826}a:hover{color:#8F5A0E}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F4EE; color: #171826; font-family: Inter, system-ui, sans-serif; position: relative; overflow: hidden; display: flex; flex-direction: column">
+  <div style="padding: 60px 20px 0; display: flex; flex-direction: column; gap: 18px; flex-grow: 1">
+    <h1 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 38px; line-height: 1">My bookings</h1>
+    <div role="tablist" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #F3EADB; border-radius: 999px; padding: 4px">
+      <button type="button" role="tab" aria-selected="{{upOn}}" onClick="{{showUp}}" style="height: 40px; border-radius: 999px; border: 0; background: {{upBg}}; color: #171826; font: 600 14px Inter, sans-serif">Upcoming</button>
+      <button type="button" role="tab" aria-selected="{{pastOn}}" onClick="{{showPast}}" style="height: 40px; border-radius: 999px; border: 0; background: {{pastBg}}; color: #171826; font: 600 14px Inter, sans-serif">Past</button>
+    </div>
+    <sc-if value="{{upOn}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <div style="background: #FFFFFF; border: 1px solid #ECE6DC; border-radius: 20px; overflow: hidden">
+          <div style="padding: 16px; display: flex; gap: 14px; align-items: center">
+            <div style="width: 56px; height: 60px; border-radius: 14px; background: {{accent}}; color: #171826; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0"><span style="font-size: 11px; font-weight: 600; letter-spacing: 1.2px">NOV</span><span style="font-family: 'Instrument Serif', serif; font-size: 28px; line-height: 1">14</span></div>
+            <div style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 16px; font-weight: 600">Adult cut</span><span style="font-size: 14px; color: #5D6070">Sat · 2:30 PM · with April</span><span style="font-size: 14px; color: #5D6070">Lisa's Salon</span></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #EFEAE2">
+            <button type="button" style="height: 50px; border: 0; border-right: 1px solid #EFEAE2; background: transparent; font: 600 14px Inter, sans-serif; color: #171826">Directions</button>
+            <a href="Book.html" style="height: 50px; border-right: 1px solid #EFEAE2; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 600">Reschedule</a>
+            <button type="button" onClick="{{openCancel}}" style="height: 50px; border: 0; background: transparent; font: 600 14px Inter, sans-serif; color: #8F5A0E">Cancel</button>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 13px; color: #5D6070; text-align: center">Free cancellation until Fri, Nov 13 at 2:30 PM</p>
+      </div>
+    </sc-if>
+    <sc-if value="{{pastOn}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <div style="background: #FFFFFF; border: 1px solid #ECE6DC; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; gap: 12px; align-items: center"><div style="width: 48px; height: 48px; border-radius: 12px; background: #C4B3A2; flex-shrink: 0"></div><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Box braids · Jade</span><span style="font-size: 13px; color: #5D6070">Oct 21 · Lisa's Salon</span></div></div>
+          <div style="display: flex; gap: 8px">
+            <a href="Review.html" style="flex: 1; height: 44px; border-radius: 999px; background: #171826; color: #FFFFFF; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 600">Leave a review</a>
+            <a href="Book.html" style="flex: 1; height: 44px; border-radius: 999px; border: 1px solid #E5DFD5; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 600">Book again</a>
+          </div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid #ECE6DC; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; gap: 12px; align-items: center"><div style="width: 48px; height: 48px; border-radius: 12px; background: #D3C4B4; flex-shrink: 0"></div><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Cut &amp; shampoo · Marcus</span><span style="font-size: 13px; color: #5D6070">Sep 30 · Hoeger &amp; Tillman</span></div></div>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <span style="flex: 1; font-size: 13px; color: #5D6070; display: flex; align-items: center; gap: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D58E39" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>You rated 5</span>
+            <a href="Book.html" style="flex: 1; height: 44px; border-radius: 999px; border: 1px solid #E5DFD5; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 600">Book again</a>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+  <nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 8px 26px; background: #FFFFFF; border-top: 1px solid #E5DFD5">
+    <a href="Main.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 10l8-6 8 6v10h-5v-6H9v6H4z"></path></svg>Home</a>
+    <a href="Results.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>Explore</a>
+    <a href="MyBookings.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #171826; font-size: 11px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>Bookings</a>
+    <a href="Profile.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; text-decoration: none; color: #5D6070; font-size: 11px; font-weight: 500"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>Profile</a>
+  </nav>
+  <sc-if value="{{cancelOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(23,24,38,.45)">
+      <div role="dialog" aria-label="Cancel booking" style="position: absolute; left: 0; right: 0; bottom: 0; background: #F7F4EE; border-radius: 28px 28px 0 0; padding: 10px 20px 30px; display: flex; flex-direction: column; gap: 14px">
+        <div style="width: 40px; height: 5px; border-radius: 3px; background: #CBBFB2; margin: 0 auto"></div>
+        <span style="font-family: 'Instrument Serif', serif; font-size: 30px; line-height: 1.05; margin-top: 6px">Cancel this booking?</span>
+        <span style="font-size: 15px; line-height: 1.45; color: #2B2E40">Adult cut with April, Sat Nov 14 at 2:30 PM. You're still inside the free window, so you'll get a <strong>full refund of $30</strong>.</span>
+        <button type="button" onClick="{{closeCancel}}" style="height: 54px; border-radius: 999px; border: 0; background: #171826; color: #FFFFFF; font: 600 15px Inter, sans-serif">Keep my booking</button>
+        <button type="button" onClick="{{closeCancel}}" style="height: 48px; border: 0; background: transparent; font: 600 15px Inter, sans-serif; color: #8F5A0E">Yes, cancel it</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4A942","options":["#F4A942","#171826","#D58E39"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'up' };
+  }
+  renderVals() {
+    const tab = (this.state && this.state.tab) || 'up';
+    return {
+      accent: this.props.accent ?? '#F4A942',
+      upOn: tab === 'up',
+      pastOn: tab === 'past',
+      upBg: tab === 'up' ? '#FFFFFF' : 'transparent',
+      pastBg: tab === 'past' ? '#FFFFFF' : 'transparent',
+      cancelOpen: !!(this.state && this.state.cancel),
+      openCancel: () => this.setState({ cancel: true }),
+      closeCancel: () => this.setState({ cancel: false }),
+      showUp: () => this.setState({ tab: 'up' }),
+      showPast: () => this.setState({ tab: 'past' })
+    };
+  }
+}
+</script>
+</body>
+</html>
