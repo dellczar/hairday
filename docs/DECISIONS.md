@@ -10,3 +10,5 @@
 | 2026-11-08 | Navy text on gold, never white | White on the logo gold is 2:1 contrast — too hard to read |
 | 2026-11-08 | Tips 15 / 18 / 20% / None, default 18% | Current US norms (original had 10 / 20 / 30%) |
 | 2026-11-08 | Free cancellation until 24 h; 50% after or no-show | Carried over from the original design |
+| 2026-11-11 | Publisher ("Seller") on both stores is **HairDay, Inc.**, enrolled as an organization; D-U-N-S on file | Owner's choice (Open question 5). Company name on the listing, and avoids Google Play's closed-test rule for new personal accounts. Use the legal name exactly as D&B lists it |
+| 2026-11-11 | Domain is **hairday.app** (registered at GoDaddy) — company website, privacy/terms pages, and later share links | Owner's choice (part of Open question 4). Apple's organization enrollment needs a company website |
