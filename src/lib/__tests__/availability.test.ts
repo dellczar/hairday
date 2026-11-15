@@ -13,7 +13,16 @@ function pro(id: string, extra: Partial<ProSchedule> = {}): ProSchedule {
 }
 
 function query(extra: Partial<SlotQuery> = {}): SlotQuery {
-  return { date: DATE, timeZone: TZ, now: MONDAY, durationMin: 60, businessHours: tuesdayHours, pros: [pro('april')], proId: 'april', ...extra };
+  return {
+    date: DATE,
+    timeZone: TZ,
+    now: MONDAY,
+    durationMin: 60,
+    businessHours: tuesdayHours,
+    pros: [pro('april')],
+    proId: 'april',
+    ...extra,
+  };
 }
 
 const times = (q: SlotQuery, booked = false) =>

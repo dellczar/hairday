@@ -39,7 +39,9 @@ describe('money rules (shared with the server functions)', () => {
 
   it('cancelling within 24 hours costs half the services, never the tip', () => {
     expect(cancellationQuote(booking, new Date('2026-11-19T19:30:01.000Z'), 'customer')).toEqual({ charge: 1500, late: true });
-    expect(cancellationQuote({ subtotal_cents: 4550, starts_at: booking.starts_at }, new Date('2026-11-20T18:00:00Z'), 'customer').charge).toBe(2275);
+    expect(
+      cancellationQuote({ subtotal_cents: 4550, starts_at: booking.starts_at }, new Date('2026-11-20T18:00:00Z'), 'customer').charge,
+    ).toBe(2275);
   });
 
   it('the salon cancelling never costs the customer anything', () => {

@@ -33,9 +33,19 @@ describe('holding a time (demo mode)', () => {
   it('holds a free time with the price and length from the salon’s menu', async () => {
     const db = memoryDb();
     const { april, blowout } = await lisa(db);
-    const id = await db.createHold({ business_id: SEED_SALON_IDS.lisa, professional_id: april.id, service_ids: [blowout.id], starts_at: TUE_11AM });
+    const id = await db.createHold({
+      business_id: SEED_SALON_IDS.lisa,
+      professional_id: april.id,
+      service_ids: [blowout.id],
+      starts_at: TUE_11AM,
+    });
     const [b] = await db.select('bookings', { id });
-    expect(b).toMatchObject({ status: 'pending_payment', customer_id: DEMO_USER_ID, total_cents: 6000, ends_at: '2026-11-17T16:45:00.000Z' });
+    expect(b).toMatchObject({
+      status: 'pending_payment',
+      customer_id: DEMO_USER_ID,
+      total_cents: 6000,
+      ends_at: '2026-11-17T16:45:00.000Z',
+    });
     expect(await db.select('booking_services', { booking_id: id })).toHaveLength(1);
   });
 

@@ -65,6 +65,12 @@
             "useFrameworks": "dynamic"
           }
         }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Hairday imports the contacts you choose into your client list."
+        }
       ]
     ],
     "experiments": {

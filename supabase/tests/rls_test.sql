@@ -88,7 +88,9 @@ rollback;
 begin;
 select tests.as_user('00000000-0000-4000-a000-000000000001');
 set local role authenticated;
-select tests.expect((select count(*) from clients) = 1, 'owner sees their own salon''s client only');
+select tests.expect(exists (select 1 from clients where name = 'Lisa Regular')
+  and not exists (select 1 from clients c where not exists (select 1 from businesses b where b.id = c.business_id and b.owner_id = auth.uid())),
+  'owner sees their own salons'' clients only');
 select tests.expect(not exists (select 1 from clients where name = 'Private Client'), 'owner cannot read another business''s clients');
 select tests.expect((select count(*) from time_off) = 1, 'owner sees their staff''s time off');
 select tests.expect((select count(*) from bookings) >= 2, 'owner sees bookings at their salons');
@@ -442,8 +444,11 @@ do $$ begin
   raise exception 'FAIL: owner changed the tip';
 exception when insufficient_privilege then raise notice 'ok - an owner cannot change the tip';
 end $$;
-update bookings set status = 'completed' where id = '30000000-0000-4000-a000-000000000001';
-select tests.expect((select status from bookings where id = '30000000-0000-4000-a000-000000000001') = 'completed', 'an owner can still mark their booking completed');
+do $$ begin
+  update bookings set status = 'completed' where id = '30000000-0000-4000-a000-000000000001';
+  raise exception 'FAIL: owner updated a booking directly';
+exception when insufficient_privilege then raise notice 'ok - owners change bookings only through the checked functions';
+end $$;
 do $$ begin
   perform 1 from stripe_events;
   raise exception 'FAIL: owner read stripe_events';
@@ -456,6 +461,81 @@ update bookings set status = 'pending_payment', payment_status = 'card_saved', c
 do $$ begin perform release_expired_holds(); end $$;
 select tests.expect((select status from bookings where id = '30000000-0000-4000-a000-000000000001') = 'pending_payment',
   'a hold with a saved card is not released');
+rollback;
+
+\echo '— owner day: clients, walk-ins, no-shows (Phase 6)'
+begin;
+create or replace function tests.ny(days int, hhmm text) returns timestamptz language sql stable as $$
+  select ((date_trunc('week', now() at time zone 'America/New_York')::date + days) + hhmm::time) at time zone 'America/New_York';
+$$;
+grant execute on function tests.ny(int, text) to anon, authenticated;
+-- Booking online makes you a client of that salon, with your name and email.
+select tests.expect(exists (
+  select 1 from bookings b join clients c on c.id = b.client_id
+  where b.id = '30000000-0000-4000-a000-000000000001' and c.profile_id = '00000000-0000-4000-a000-000000000002'
+    and c.email = 'customer@hairday.test'), 'a customer who books becomes a client of that salon');
+select tests.expect((select count(*) from clients where profile_id = '00000000-0000-4000-a000-000000000002'
+  and business_id = '10000000-0000-4000-a000-000000000001') = 1, 'booking again doesn''t add the client twice');
+create temp table w (pro uuid, svc uuid, cli uuid, id uuid) on commit drop;
+insert into w (pro, svc, cli)
+  select (select id from professionals where first_name = 'April'),
+         (select id from services where business_id = '10000000-0000-4000-a000-000000000001' and name = 'Blowout'),
+         (select id from clients where name = 'Lisa Regular');
+grant all on w to authenticated;
+
+select tests.as_user('00000000-0000-4000-a000-000000000001');
+set local role authenticated;
+update w set id = add_walk_in('10000000-0000-4000-a000-000000000001', pro, cli, array[svc], tests.ny(15, '15:00'));
+select tests.expect((select source = 'walk_in' and status = 'confirmed' and subtotal_cents = 6000 and payment_status = 'none'
+  and ends_at - starts_at = interval '45 minutes' from bookings where id = (select id from w)),
+  'an owner can add a walk-in; price and length come from the menu');
+do $$ begin
+  perform add_walk_in('10000000-0000-4000-a000-000000000001', (select pro from w), null, array[(select svc from w)], tests.ny(15, '15:30'));
+  raise exception 'FAIL: overlapping walk-in accepted';
+exception when unique_violation then raise notice 'ok - a walk-in can''t overlap another appointment';
+end $$;
+do $$ begin
+  insert into clients (business_id, name, profile_id) values ('10000000-0000-4000-a000-000000000001', 'Faker', '00000000-0000-4000-a000-000000000010');
+  raise exception 'FAIL: owner linked a client to a Hairday account';
+exception when insufficient_privilege then raise notice 'ok - an owner can''t link a client to someone''s Hairday account';
+end $$;
+insert into clients (business_id, name, phone) values ('10000000-0000-4000-a000-000000000001', 'New Walk-in', '+12125550123');
+select tests.expect(exists (select 1 from clients where name = 'New Walk-in'), 'an owner can add a client by hand');
+do $$ begin
+  perform mark_booking((select id from w), 'no_show');
+  raise exception 'FAIL: no-show before the appointment';
+exception when check_violation then raise notice 'ok - a no-show can''t be marked before the appointment starts';
+end $$;
+reset role;
+update bookings set starts_at = now() - interval '2 hours', ends_at = now() - interval '75 minutes' where id = (select id from w);
+select tests.as_user('00000000-0000-4000-a000-000000000001');
+set local role authenticated;
+select mark_booking((select id from w), 'no_show');
+select tests.expect((select status from bookings where id = (select id from w)) = 'no_show', 'once it has started, an owner can mark a no-show');
+reset role;
+
+-- Another salon's owner can't add walk-ins here or mark these bookings.
+select tests.as_user('00000000-0000-4000-a000-000000000003');
+set local role authenticated;
+do $$ begin
+  perform add_walk_in('10000000-0000-4000-a000-000000000001', (select pro from w), null, array[(select svc from w)], tests.ny(16, '11:00'));
+  raise exception 'FAIL: another owner added a walk-in';
+exception when insufficient_privilege then raise notice 'ok - another salon''s owner can''t add walk-ins';
+end $$;
+do $$ begin
+  perform mark_booking((select id from w), 'completed');
+  raise exception 'FAIL: another owner marked a booking';
+exception when insufficient_privilege then raise notice 'ok - another salon''s owner can''t mark bookings';
+end $$;
+reset role;
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+do $$ begin
+  perform mark_booking('30000000-0000-4000-a000-000000000001', 'completed');
+  raise exception 'FAIL: customer marked their own booking';
+exception when insufficient_privilege then raise notice 'ok - a customer can''t mark their own booking completed';
+end $$;
+reset role;
 rollback;
 
 \echo '— rules every role must follow'
