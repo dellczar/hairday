@@ -4,7 +4,9 @@ import { CATEGORIES } from './catalog';
 import { createChunkedStorage } from './chunkedStorage';
 import { addDemoSalons } from './demoSeed';
 import { getSupabase, isSupabaseConfigured } from './supabase';
-import type { TableName, Tables } from './types';
+import { getAvailableSlots, isLive } from './availability';
+import { zonedClock } from './hours';
+import type { BusyTime, HoldRequest, TableName, Tables } from './types';
 
 /**
  * The few table operations the screens need, behind one small interface.
@@ -27,6 +29,12 @@ export interface Db {
   remove<K extends TableName>(table: K, filter: Filter<Tables[K]>): Promise<void>;
   /** Upload a photo from the phone; returns the URL to save on the row. `folder` starts with the business id. */
   upload(folder: string, localUri: string): Promise<string>;
+  /** When each professional at a salon is busy (bookings, live holds, time off). Public. */
+  busyTimes(businessId: string, from: string, to: string): Promise<BusyTime[]>;
+  /** Holds a time for 10 minutes (SPEC §9). The server re-checks it's free. Returns the booking id. */
+  createHold(req: HoldRequest): Promise<string>;
+  /** Lets go of the signed-in customer's hold. */
+  releaseHold(bookingId: string): Promise<void>;
 }
 
 // ─────────────────────────────────────────────────────────── Supabase
@@ -72,6 +80,22 @@ function supabaseDb(): Db {
     async remove(table, filter) {
       check(await applyFilter(from(table).delete(), filter));
     },
+    async busyTimes(businessId, from, to) {
+      return check(await sb().rpc('busy_times', { p_business: businessId, p_from: from, p_to: to })) ?? [];
+    },
+    async createHold(req) {
+      const { data, error } = await sb().rpc('create_hold', {
+        p_business: req.business_id,
+        p_professional: req.professional_id,
+        p_service_ids: req.service_ids,
+        p_starts_at: req.starts_at,
+      });
+      if (error) throw new Error(holdError(error));
+      return data as string;
+    },
+    async releaseHold(bookingId) {
+      check(await sb().rpc('release_hold', { p_booking: bookingId }));
+    },
     async upload(folder, localUri) {
       const body = await (await fetch(localUri)).arrayBuffer();
       const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
@@ -79,6 +103,12 @@ function supabaseDb(): Db {
       return sb().storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
     },
   };
+}
+
+/** create_hold() raises plain-English messages for the cases a customer can hit; show those as they are. */
+function holdError(error: { message: string; code?: string }): string {
+  if (error.code && ['23514', '23505', '42501'].includes(error.code)) return error.message;
+  return friendlyDbError(error.message);
 }
 
 function friendlyDbError(message: string): string {
@@ -97,17 +127,50 @@ export type Persist = { load(): Promise<string | null>; save(json: string): Prom
 /** What the database fills in when a column is left out (same defaults as the migration). */
 const DEFAULTS: { [K in TableName]?: () => Partial<Tables[K]> } = {
   businesses: () => ({
-    type: null, description: null, phone: null, website: null, instagram: null, tiktok: null,
-    address_line1: null, address_line2: null, city: null, state: null, zip: null, lat: null, lng: null,
-    time_zone: 'America/New_York', logo_url: null, amenities: [], health_safety: [],
-    cancellation_hours: 24, late_cancel_percent: 50, stripe_account_id: null,
-    payouts_enabled: false, is_published: false, created_at: new Date().toISOString(),
+    type: null,
+    description: null,
+    phone: null,
+    website: null,
+    instagram: null,
+    tiktok: null,
+    address_line1: null,
+    address_line2: null,
+    city: null,
+    state: null,
+    zip: null,
+    lat: null,
+    lng: null,
+    time_zone: 'America/New_York',
+    logo_url: null,
+    amenities: [],
+    health_safety: [],
+    cancellation_hours: 24,
+    late_cancel_percent: 50,
+    stripe_account_id: null,
+    payouts_enabled: false,
+    is_published: false,
+    created_at: new Date().toISOString(),
   }),
   services: () => ({ category_id: null, description: null, is_visible: true, sort_order: 0 }),
   professionals: () => ({ role: 'hair stylist', last_name: null, avatar_url: null, instagram: null, is_active: true }),
   business_photos: () => ({ sort_order: 0 }),
   professional_photos: () => ({ sort_order: 0 }),
   time_off: () => ({ note: null }),
+  bookings: () => ({
+    customer_id: null,
+    client_id: null,
+    status: 'pending_payment',
+    source: 'online',
+    subtotal_cents: 0,
+    fee_cents: 0,
+    tip_cents: 0,
+    total_cents: 0,
+    stripe_payment_intent_id: null,
+    cancelled_at: null,
+    cancelled_by: null,
+    refund_cents: 0,
+    created_at: new Date().toISOString(),
+  }),
 };
 
 /** Child rows deleted along with a parent (the migration's `on delete cascade`). */
@@ -119,7 +182,9 @@ const CASCADE: { [K in TableName]?: { table: TableName; column: string }[] } = {
     { table: 'professionals', column: 'business_id' },
     { table: 'public_reviews', column: 'business_id' },
     { table: 'favorites', column: 'business_id' },
+    { table: 'bookings', column: 'business_id' },
   ],
+  bookings: [{ table: 'booking_services', column: 'booking_id' }],
   services: [{ table: 'professional_services', column: 'service_id' }],
   professionals: [
     { table: 'professional_services', column: 'professional_id' },
@@ -176,7 +241,7 @@ export function createDemoDb(persist: Persist): Db {
     }
   };
 
-  return {
+  const api: Db = {
     demo: true,
     async userId() {
       return DEMO_USER_ID;
@@ -190,7 +255,7 @@ export function createDemoDb(persist: Persist): Db {
       const s = await load();
       const withDefaults = rows.map((r) => ({
         ...(DEFAULTS[table]?.() ?? {}),
-        ...(table === 'professional_services' ? {} : { id: uuid() }),
+        ...(table === 'professional_services' || table === 'booking_services' ? {} : { id: uuid() }),
         ...r,
       }));
       rowsOf(s, table).push(...(withDefaults as Record<string, unknown>[]));
@@ -216,7 +281,120 @@ export function createDemoDb(persist: Persist): Db {
     async upload(_folder, localUri) {
       return localUri; // demo mode keeps the photo on the phone
     },
+    async busyTimes(businessId, from, to) {
+      return demoBusyTimes(api, businessId, from, to);
+    },
+    async createHold(req) {
+      return demoCreateHold(api, req);
+    },
+    async releaseHold(bookingId) {
+      const now = new Date().toISOString();
+      await api.update(
+        'bookings',
+        { id: bookingId, customer_id: DEMO_USER_ID, status: 'pending_payment' },
+        { status: 'cancelled', cancelled_at: now, cancelled_by: DEMO_USER_ID },
+      );
+    },
   };
+  return api;
+}
+
+const overlaps = (a: { starts_at: string; ends_at: string }, from: string, to: string) =>
+  new Date(a.starts_at).getTime() < new Date(to).getTime() && new Date(a.ends_at).getTime() > new Date(from).getTime();
+
+/** Same answer as busy_times() in the database, from the data on this phone. */
+async function demoBusyTimes(db: Db, businessId: string, from: string, to: string): Promise<BusyTime[]> {
+  const pros = await db.select('professionals', { business_id: businessId });
+  const proIds = pros.map((p) => p.id);
+  if (!proIds.length) return [];
+  const [bookings, timeOff] = await Promise.all([
+    db.select('bookings', { business_id: businessId }),
+    db.select('time_off', { professional_id: proIds }),
+  ]);
+  return [
+    ...bookings
+      .filter((b) => isLive(b) && overlaps(b, from, to))
+      .map((b) => ({ professional_id: b.professional_id, starts_at: b.starts_at, ends_at: b.ends_at, kind: 'booking' as const })),
+    ...timeOff
+      .filter((t) => overlaps(t, from, to))
+      .map((t) => ({ professional_id: t.professional_id, starts_at: t.starts_at, ends_at: t.ends_at, kind: 'time_off' as const })),
+  ];
+}
+
+/** Demo version of create_hold(): the same checks, using the same slot calculator the screen uses. */
+async function demoCreateHold(db: Db, req: HoldRequest): Promise<string> {
+  const [business] = await db.select('businesses', { id: req.business_id });
+  if (!business) throw new Error('This salon isn’t taking bookings right now.');
+  const services = (await db.select('services', { id: req.service_ids, business_id: req.business_id })).filter((s) => s.is_visible);
+  if (!req.service_ids.length || services.length !== new Set(req.service_ids).size)
+    throw new Error('One of those services isn’t available any more.');
+  const links = await db.select('professional_services', { professional_id: req.professional_id, service_id: req.service_ids });
+  if (links.length !== services.length) throw new Error('That professional doesn’t offer all of those services.');
+
+  const minutes = services.reduce((sum, s) => sum + s.duration_min, 0);
+  const date = zonedClock(new Date(req.starts_at), business.time_zone).date;
+  const [hours, availability, breaks] = await Promise.all([
+    db.select('business_hours', { business_id: req.business_id }),
+    db.select('availability', { professional_id: req.professional_id }),
+    db.select('breaks', { professional_id: req.professional_id }),
+  ]);
+  // Your own hold doesn't count against you: holding a new time replaces it.
+  await db.update(
+    'bookings',
+    { customer_id: DEMO_USER_ID, status: 'pending_payment' },
+    { status: 'cancelled', cancelled_at: new Date().toISOString(), cancelled_by: DEMO_USER_ID },
+  );
+  const busy = await demoBusyTimes(
+    db,
+    req.business_id,
+    new Date(new Date(req.starts_at).getTime() - 86_400_000).toISOString(),
+    new Date(new Date(req.starts_at).getTime() + 2 * 86_400_000).toISOString(),
+  );
+  const mine = busy.filter((b) => b.professional_id === req.professional_id);
+  const slots = getAvailableSlots({
+    date,
+    timeZone: business.time_zone,
+    now: new Date(),
+    durationMin: minutes,
+    businessHours: hours,
+    pros: [
+      {
+        id: req.professional_id,
+        availability,
+        breaks,
+        timeOff: mine.filter((b) => b.kind === 'time_off'),
+        bookings: mine.filter((b) => b.kind === 'booking'),
+      },
+    ],
+    proId: req.professional_id,
+  });
+  const slot = slots.find((s) => new Date(s.start).getTime() === new Date(req.starts_at).getTime());
+  if (!slot) throw new Error('That time isn’t available. Pick another.');
+  if (slot.booked) throw new Error('Someone just booked that time. Pick another.');
+
+  const price = services.reduce((sum, s) => sum + s.price_cents, 0);
+  const [booking] = await db.insert('bookings', [
+    {
+      business_id: req.business_id,
+      professional_id: req.professional_id,
+      customer_id: DEMO_USER_ID,
+      starts_at: req.starts_at,
+      ends_at: new Date(new Date(req.starts_at).getTime() + minutes * 60_000).toISOString(),
+      subtotal_cents: price,
+      total_cents: price,
+    },
+  ]);
+  await db.insert(
+    'booking_services',
+    services.map((s) => ({
+      booking_id: booking!.id,
+      service_id: s.id,
+      professional_id: req.professional_id,
+      price_cents: s.price_cents,
+      duration_min: s.duration_min,
+    })),
+  );
+  return booking!.id;
 }
 
 function structuredCloneSafe<T>(v: T): T {

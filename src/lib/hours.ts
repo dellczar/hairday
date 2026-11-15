@@ -79,27 +79,36 @@ export function clampDuration(min: number): number {
  * Used for whole-day time off, so it lines up with the salon's clock (not the phone's).
  */
 export function zonedDayStart(date: string, timeZone: string): string {
+  return zonedTimeToUtc(date, 0, timeZone).toISOString();
+}
+
+/** Offset (ms) between the zone's wall clock and UTC at an instant. */
+function zoneOffset(t: number, timeZone: string): number {
+  const f = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(new Date(t));
+  const get = (type: string) => parseInt(f.find((p) => p.type === type)?.value ?? '0', 10);
+  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') % 24, get('minute'), get('second'));
+  return asUtc - t;
+}
+
+/**
+ * The instant a wall-clock time happens in a time zone: 'YYYY-MM-DD' + minutes after midnight.
+ * Corrects twice so the daylight-saving change days come out right.
+ */
+export function zonedTimeToUtc(date: string, minutes: number, timeZone: string): Date {
   const [y, mo, d] = date.split('-').map((n) => parseInt(n, 10)) as [number, number, number];
-  const utcGuess = Date.UTC(y, mo - 1, d, 0, 0, 0);
-  // Offset of the zone at that instant, then correct once more in case the guess crossed a DST change.
-  const offset = (t: number) => {
-    const f = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      hourCycle: 'h23',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).formatToParts(new Date(t));
-    const get = (type: string) => parseInt(f.find((p) => p.type === type)?.value ?? '0', 10);
-    const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
-    return asUtc - t;
-  };
-  let t = utcGuess - offset(utcGuess);
-  t = utcGuess - offset(t);
-  return new Date(t).toISOString();
+  const guess = Date.UTC(y, mo - 1, d, 0, minutes, 0);
+  let t = guess - zoneOffset(guess, timeZone);
+  t = guess - zoneOffset(t, timeZone);
+  return new Date(t);
 }
 
 /** 'YYYY-MM-DD' for a Date, using its local calendar day. */
@@ -165,7 +174,10 @@ export function openStatus(hours: Hours, at: Date, timeZone: string): { open: bo
   if (laterToday) return { open: false, label: `Opens at ${formatHour(laterToday.from)}` };
   for (let i = 1; i <= 7; i++) {
     const day = (now.weekday + i) % 7;
-    const first = hours.filter((h) => h.weekday === day).map((h) => toMinutes(h.opens_at)).sort((a, b) => a - b)[0];
+    const first = hours
+      .filter((h) => h.weekday === day)
+      .map((h) => toMinutes(h.opens_at))
+      .sort((a, b) => a - b)[0];
     if (first !== undefined) return { open: false, label: `Opens ${i === 1 ? 'tomorrow' : SHORT_DAY[day]} ${formatHour(first)}` };
   }
   return { open: false, label: 'Hours not set' };

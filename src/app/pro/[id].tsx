@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Star, UserRound } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Avatar, BackButton, EmptyState, FavoriteButton, ReviewCard, Skeleton, Tabs } from '@/components';
@@ -176,7 +176,8 @@ export default function ProPage() {
       <View style={[styles.bar, { paddingBottom: insets.bottom + 14 }]}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => Alert.alert('Almost there', `Booking with ${pro.first_name} is built in the next phase.`)}
+          accessibilityHint="Opens the salon’s services so you can choose what to book"
+          onPress={() => business && router.push({ pathname: '/salon/[id]', params: { id: business.id, pro: pro.id } })}
           style={({ pressed }) => [styles.cta, pressed && { opacity: 0.88 }]}>
           <AppText variant="button" color="white">
             Book with {pro.first_name}

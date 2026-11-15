@@ -101,6 +101,37 @@ export type PublicReview = {
 /** Exactly one of business_id / professional_id is set. */
 export type Favorite = { id: string; customer_id: string; business_id: string | null; professional_id: string | null };
 
+export type BookingStatus = 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+
+export type Booking = {
+  id: string;
+  business_id: string;
+  professional_id: string;
+  customer_id: string | null;
+  client_id: string | null;
+  starts_at: string;
+  ends_at: string;
+  status: BookingStatus;
+  source: 'online' | 'walk_in' | 'phone';
+  subtotal_cents: number;
+  fee_cents: number;
+  tip_cents: number;
+  total_cents: number;
+  stripe_payment_intent_id: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  refund_cents: number;
+  created_at: string;
+};
+
+/** Services copied onto a booking at the moment it's made (prices can change later). */
+export type BookingService = { booking_id: string; service_id: string; professional_id: string; price_cents: number; duration_min: number };
+
+/** One row from busy_times(): when a professional can't take clients. Never says who or why. */
+export type BusyTime = { professional_id: string; starts_at: string; ends_at: string; kind: 'booking' | 'time_off' };
+
+export type HoldRequest = { business_id: string; professional_id: string; service_ids: string[]; starts_at: string };
+
 export type Tables = {
   businesses: Business;
   business_photos: BusinessPhoto;
@@ -115,6 +146,8 @@ export type Tables = {
   time_off: TimeOff;
   public_reviews: PublicReview;
   favorites: Favorite;
+  bookings: Booking;
+  booking_services: BookingService;
 };
 
 export type TableName = keyof Tables;

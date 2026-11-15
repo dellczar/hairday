@@ -27,7 +27,7 @@ const TABS: { key: Tab; label: string }[] = [
 
 /** Salon page (Salon.html). `preview=1` is the owner looking at their own salon from Business mode. */
 export default function SalonPage() {
-  const { id, preview } = useLocalSearchParams<{ id: string; preview?: string }>();
+  const { id, preview, pro: withPro } = useLocalSearchParams<{ id: string; preview?: string; pro?: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const salon = useSalon(id);
@@ -101,7 +101,11 @@ export default function SalonPage() {
     Share.share({ message: `${b.name} on Hairday: ${url}`, url, title: b.name }).catch(() => {});
   };
 
-  const chooseTime = () => Alert.alert('Almost there', 'Picking a time and paying are built in the next phase. Your services are ready to go.');
+  const chooseTime = () => {
+    if (isPreview) return Alert.alert('Preview', 'Clients pick a time here. Booking isn’t available in preview.');
+    router.push({ pathname: '/book/[salonId]/time', params: { salonId: b.id, services: picked.join(','), pro: withPro ?? '' } });
+  };
+  const bookingWith = withPro ? data.pros.find((p) => p.id === withPro) : undefined;
 
   const proName = (pid: string | null) => {
     const p = data.pros.find((x) => x.id === pid);
@@ -158,6 +162,13 @@ export default function SalonPage() {
             <View style={styles.previewNote}>
               <AppText variant="caption" color="inkSoft">
                 {b.is_published ? 'This is how clients see your salon.' : 'Preview — clients can’t see your salon until it’s live.'}
+              </AppText>
+            </View>
+          ) : null}
+          {bookingWith ? (
+            <View style={styles.previewNote}>
+              <AppText variant="caption" color="inkSoft">
+                Booking with {bookingWith.first_name}. Pick the services you’d like, then choose a time.
               </AppText>
             </View>
           ) : null}

@@ -264,6 +264,151 @@ delete from favorites where business_id is not null;
 select tests.expect((select count(*) from favorites) = 1, 'a customer can remove their own favorite');
 rollback;
 
+\echo '— booking: busy times and holds (Phase 4)'
+begin;
+-- A wall-clock time in New York, `days` after the start of this week (Monday). 15 = Tuesday two weeks out.
+create or replace function tests.ny(days int, hhmm text) returns timestamptz language sql stable as $$
+  select ((date_trunc('week', now() at time zone 'America/New_York')::date + days) + hhmm::time) at time zone 'America/New_York';
+$$;
+grant execute on function tests.ny(int, text) to anon, authenticated;
+create temp table ids as select
+  (select id from professionals where first_name = 'April') as april,
+  (select id from professionals where first_name = 'Jun') as jun,
+  (select id from services where name = 'Blowout') as blowout,            -- Lisa's, 45 min, $60
+  (select id from services where name = 'Gloss treatment') as gloss,      -- Lisa's, 30 min
+  (select id from services where name = 'Skin fade') as fade;             -- another salon's
+grant select on ids to anon, authenticated;
+create temp table held (id uuid);
+grant all on held to anon, authenticated;
+
+select set_config('request.jwt.claims', '', true); -- signed out
+set local role anon;
+do $$ begin
+  perform create_hold('10000000-0000-4000-a000-000000000001', (select april from ids), array[(select blowout from ids)], tests.ny(15, '11:00'));
+  raise exception 'FAIL: anon held a time';
+exception when insufficient_privilege then raise notice 'ok - visitors who are not signed in cannot hold a time';
+end $$;
+do $$ begin
+  perform release_expired_holds();
+  raise exception 'FAIL: anon ran the hold clean-up';
+exception when insufficient_privilege then raise notice 'ok - only the server can run the hold clean-up';
+end $$;
+reset role;
+
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+insert into held select create_hold('10000000-0000-4000-a000-000000000001', (select april from ids), array[(select blowout from ids)], tests.ny(15, '11:00'));
+select tests.expect((select count(*) from held where id is not null) = 1, 'a customer can hold a free time');
+select tests.expect((select status from bookings where id = (select id from held)) = 'pending_payment', 'a hold starts as pending payment');
+select tests.expect((select ends_at - starts_at from bookings where id = (select id from held)) = interval '45 minutes', 'the hold lasts as long as the service (from the database)');
+select tests.expect((select total_cents from bookings where id = (select id from held)) = 6000, 'the price comes from the database, not the phone');
+select tests.expect((select count(*) from booking_services where booking_id = (select id from held)) = 1, 'the held services are copied onto the booking');
+
+-- Rejected times. Each must fail with a plain message.
+do $$
+declare
+  cases text[][] := array[
+    array['off the 15-minute grid', '15', '11:10', 'blowout', 'april'],
+    array['past closing time', '15', '18:30', 'blowout', 'april'],
+    array['overlapping the lunch break', '15', '12:45', 'blowout', 'april'],
+    array['on a day the salon is closed (Monday)', '14', '11:00', 'blowout', 'april'],
+    array['for another salon''s service', '15', '15:00', 'fade', 'april']
+  ];
+  c text[];
+  svc uuid;
+begin
+  foreach c slice 1 in array cases loop
+    svc := case c[4] when 'fade' then (select fade from ids) else (select blowout from ids) end;
+    begin
+      perform create_hold('10000000-0000-4000-a000-000000000001', (select april from ids), array[svc], tests.ny(c[2]::int, c[3]));
+      raise exception 'FAIL: held a time %', c[1];
+    exception when check_violation then raise notice 'ok - cannot hold a time %', c[1];
+    end;
+  end loop;
+end $$;
+do $$ begin
+  perform create_hold('10000000-0000-4000-a000-000000000001', (select april from ids), array[(select blowout from ids)], date_trunc('hour', now()) + interval '30 minutes');
+  raise exception 'FAIL: held a time less than an hour away';
+exception when check_violation then raise notice 'ok - cannot hold a time less than an hour away';
+end $$;
+do $$ begin
+  perform create_hold('10000000-0000-4000-a000-000000000099', '20000000-0000-4000-a000-000000000099', array[(select blowout from ids)], tests.ny(15, '11:00'));
+  raise exception 'FAIL: held a time at an unpublished salon';
+exception when check_violation then raise notice 'ok - cannot hold a time at a salon that is not live';
+end $$;
+reset role;
+
+-- Someone else, same professional, overlapping time.
+select tests.as_user('00000000-0000-4000-a000-000000000010');
+set local role authenticated;
+do $$ begin
+  perform create_hold('10000000-0000-4000-a000-000000000001', (select april from ids), array[(select gloss from ids)], tests.ny(15, '11:30'));
+  raise exception 'FAIL: double-booked a held time';
+exception when unique_violation then raise notice 'ok - a held time cannot be taken by someone else';
+end $$;
+select tests.expect(
+  (select count(*) from create_hold('10000000-0000-4000-a000-000000000001', (select jun from ids), array[(select gloss from ids)], tests.ny(15, '11:30')) x) = 1,
+  'a different professional can take the same time');
+reset role;
+
+-- What everyone may see of busy times.
+select set_config('request.jwt.claims', '', true); -- signed out
+set local role anon;
+select tests.expect(exists (
+  select 1 from busy_times('10000000-0000-4000-a000-000000000001', tests.ny(15, '00:00'), tests.ny(16, '00:00'))
+  where professional_id = (select april from ids) and starts_at = tests.ny(15, '11:00')
+), 'anyone can see that a time is busy');
+select tests.expect(not exists (
+  select 1 from information_schema.routines r join information_schema.parameters p using (specific_name)
+  where r.routine_name = 'busy_times' and p.parameter_mode = 'OUT' and p.parameter_name not in ('professional_id', 'starts_at', 'ends_at', 'kind')
+), 'busy times show only which professional, when, and booking or time off — no customer or note');
+select tests.expect(exists (
+  select 1 from busy_times('10000000-0000-4000-a000-000000000001', now(), now() + interval '7 days')
+  where professional_id = (select april from ids) and ends_at - starts_at = interval '1 day' and kind = 'time_off'
+), 'time off shows as busy (without the note)');
+select tests.expect(not exists (
+  select 1 from busy_times('10000000-0000-4000-a000-000000000099', now() - interval '30 days', now() + interval '30 days')
+), 'busy times of an unpublished salon stay hidden');
+select tests.expect((select count(*) from bookings) = 0, 'anon still cannot read bookings');
+reset role;
+
+-- A new hold replaces the customer's old one; release_hold lets go.
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+select tests.expect(create_hold('10000000-0000-4000-a000-000000000001', (select april from ids), array[(select gloss from ids)], tests.ny(15, '16:00')) is not null, 'a customer can hold another time');
+select tests.expect((select status from bookings where id = (select id from held)) = 'cancelled', 'holding a new time lets go of the old one');
+select tests.expect((select count(*) from bookings where status = 'pending_payment') = 1, 'a customer has at most one hold');
+select release_hold((select id from bookings where status = 'pending_payment'));
+select tests.expect((select count(*) from bookings where status = 'pending_payment') = 0, 'a customer can let go of their hold');
+reset role;
+
+-- Someone else's hold can't be released by you, even knowing its id.
+insert into held select id from bookings where customer_id = '00000000-0000-4000-a000-000000000010' and status = 'pending_payment';
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+do $$ begin perform release_hold(id) from held where id is not null; end $$;
+reset role;
+select tests.expect((select count(*) from bookings where customer_id = '00000000-0000-4000-a000-000000000010' and status = 'pending_payment') = 1,
+  'a customer cannot let go of someone else''s hold');
+
+-- A hold older than 10 minutes stops blocking and is cleaned up.
+update bookings set created_at = now() - interval '11 minutes' where customer_id = '00000000-0000-4000-a000-000000000010' and status = 'pending_payment';
+select set_config('request.jwt.claims', '', true); -- signed out
+set local role anon;
+select tests.expect(not exists (
+  select 1 from busy_times('10000000-0000-4000-a000-000000000001', tests.ny(15, '00:00'), tests.ny(16, '00:00'))
+  where professional_id = (select jun from ids) and starts_at = tests.ny(15, '11:30')
+), 'an unpaid hold stops blocking after 10 minutes');
+reset role;
+select tests.expect(release_expired_holds() = 1, 'the clean-up cancels holds older than 10 minutes');
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+select tests.expect(
+  (select count(*) from create_hold('10000000-0000-4000-a000-000000000001', (select jun from ids), array[(select gloss from ids)], tests.ny(15, '11:30')) x) = 1,
+  'a time whose hold ran out can be booked again');
+reset role;
+rollback;
+
 \echo '— rules every role must follow'
 begin;
 do $$ begin
