@@ -17,7 +17,16 @@ create table auth.users (
   raw_app_meta_data jsonb,
   raw_user_meta_data jsonb,
   created_at timestamptz,
-  updated_at timestamptz
+  updated_at timestamptz,
+  -- Token fields hosted Supabase Auth expects to be text, never NULL (see the end of seed.sql).
+  confirmation_token text,
+  recovery_token text,
+  email_change_token_new text,
+  email_change text,
+  email_change_token_current text,
+  phone_change text,
+  phone_change_token text,
+  reauthentication_token text
 );
 
 -- Same definition Supabase uses.

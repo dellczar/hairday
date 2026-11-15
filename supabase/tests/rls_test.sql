@@ -409,6 +409,55 @@ select tests.expect(
 reset role;
 rollback;
 
+\echo '— payments'
+begin;
+-- Only server functions write money and Stripe fields; customers and owners can't fake a payment.
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+do $$ begin
+  update bookings set payment_status = 'charged' where id = '30000000-0000-4000-a000-000000000001';
+  raise exception 'FAIL: customer changed payment status';
+exception when insufficient_privilege then raise notice 'ok - a customer cannot change a booking''s payment status';
+end $$;
+do $$ begin
+  perform 1 from stripe_customers;
+  raise exception 'FAIL: customer read stripe_customers';
+exception when insufficient_privilege then raise notice 'ok - a customer cannot read who owns which Stripe customer';
+end $$;
+do $$ begin
+  insert into stripe_customers (profile_id, customer_id) values ('00000000-0000-4000-a000-000000000002', 'cus_someone_else');
+  raise exception 'FAIL: customer linked a Stripe customer';
+exception when insufficient_privilege then raise notice 'ok - a customer cannot point their account at someone else''s saved cards';
+end $$;
+reset role;
+select tests.as_user('00000000-0000-4000-a000-000000000001');
+set local role authenticated;
+do $$ begin
+  update bookings set charge_cents = 1 where id = '30000000-0000-4000-a000-000000000001';
+  raise exception 'FAIL: owner changed the charge';
+exception when insufficient_privilege then raise notice 'ok - an owner cannot change what a customer is charged';
+end $$;
+do $$ begin
+  update bookings set tip_percent = 50, total_cents = 99999 where id = '30000000-0000-4000-a000-000000000001';
+  raise exception 'FAIL: owner changed the tip';
+exception when insufficient_privilege then raise notice 'ok - an owner cannot change the tip';
+end $$;
+update bookings set status = 'completed' where id = '30000000-0000-4000-a000-000000000001';
+select tests.expect((select status from bookings where id = '30000000-0000-4000-a000-000000000001') = 'completed', 'an owner can still mark their booking completed');
+do $$ begin
+  perform 1 from stripe_events;
+  raise exception 'FAIL: owner read stripe_events';
+exception when insufficient_privilege then raise notice 'ok - an owner cannot read Stripe events';
+end $$;
+reset role;
+-- A hold whose card is already saved is not let go as unpaid.
+update bookings set status = 'pending_payment', payment_status = 'card_saved', created_at = now() - interval '11 minutes'
+  where id = '30000000-0000-4000-a000-000000000001';
+do $$ begin perform release_expired_holds(); end $$;
+select tests.expect((select status from bookings where id = '30000000-0000-4000-a000-000000000001') = 'pending_payment',
+  'a hold with a saved card is not released');
+rollback;
+
 \echo '— rules every role must follow'
 begin;
 do $$ begin

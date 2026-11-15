@@ -134,3 +134,16 @@ begin
   select b.id, b.business_id, b.professional_id, b.cust, r.rating, r.tags, r.body, b.starts_at + interval '3 hours'
   from b join professionals p on p.id = b.professional_id join r on r.pro = p.first_name and r.customer = b.cust;
 end $$;
+
+-- Sample accounts are inserted straight into auth.users. Hosted Supabase Auth can't read an account
+-- whose token fields are NULL ("Database error checking email"), so give them blanks.
+update auth.users set
+  confirmation_token = coalesce(confirmation_token, ''),
+  recovery_token = coalesce(recovery_token, ''),
+  email_change_token_new = coalesce(email_change_token_new, ''),
+  email_change = coalesce(email_change, ''),
+  email_change_token_current = coalesce(email_change_token_current, ''),
+  phone_change = coalesce(phone_change, ''),
+  phone_change_token = coalesce(phone_change_token, ''),
+  reauthentication_token = coalesce(reauthentication_token, '')
+where email like '%@hairday.test';
