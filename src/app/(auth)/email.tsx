@@ -41,7 +41,7 @@ export default function EmailStep() {
     <KeyboardAvoidingView style={styles.flex} behavior="padding">
       <ScrollView
         style={styles.flex}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 34 }]}>
         <BackButton />
         <Headline text={intent === 'business' ? 'List your' : 'What’s your'} accent={intent === 'business' ? 'business.' : 'email?'} style={styles.headline} />

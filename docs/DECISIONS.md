@@ -20,3 +20,17 @@
 | 2026-11-11 | Fonts loaded with `useFonts` while the splash screen shows | Keeps one font name per weight on both platforms, matching the SPEC §5 tokens |
 | 2026-11-11 | RLS tests are plain SQL run on a throwaway local Postgres (`npm run test:db`) | Docker isn't installed, so Supabase's local stack can't run on this Mac yet. 34 checks, all passing |
 | 2026-11-11 | Google sign-in button shows "coming soon" until the Google Cloud keys exist | The native Google SDK's config plugin needs the iOS client ID at build time (Phase 0) |
+| 2026-11-14 | **Demo mode**: until the Supabase project exists, owner screens save to the phone only (`src/lib/db.ts`). Profile shows "Reset demo data" | Lets the owner try Phase 2 now. The same screens switch to the real database automatically once `.env` has the Supabase keys — no screen code changes |
+| 2026-11-14 | Owners can't set `payouts_enabled` or `stripe_account_id` themselves; only the server (Stripe webhook) can | Found while testing: the Phase 1 rules let an owner mark payouts as done and publish without Stripe. Fixed with column permissions + 5 new tests |
+| 2026-11-14 | Photos go in one public Supabase Storage bucket, `photos/<business id>/…`; only that salon's owner can upload or delete | Photos are shown publicly on salon pages anyway; folder-per-business makes the rule simple and testable. Photos are shrunk to 1600 px JPEG before upload |
+| 2026-11-14 | Address step: typed fields (street, suite, city, state, ZIP) + "Use my current location". Address search-as-you-type and the real map pin come in Phase 3 | Both need the Google Maps keys (Phase 0, not done yet). The map is the design's drawn preview for now |
+| 2026-11-14 | Time pickers are a sheet of time chips, not a spinning wheel | Same look on iPhone and Android, big tap targets, no extra library |
+| 2026-11-14 | Form sheets (edit service, break, time off) use the system Modal | Keeps typed fields above the keyboard on both platforms; the swipe sheet stays for Filters / Walk-in later |
+| 2026-11-14 | Added a **Team list** screen (Business → Team) before "Add professional" | The designs only show adding one person; owners also need to see and edit everyone |
+| 2026-11-14 | New professionals start with the salon's opening hours and every service ticked; a new service is offered by the whole team | Fewer taps for small salons; owners untick what doesn't apply |
+| 2026-11-14 | "Add from catalog" suggests typical NYC prices and times; the owner always sets their own before saving | Speeds up setup; nothing is published with a suggested price unless the owner keeps it |
+| 2026-11-14 | Today, Clients and Get paid are placeholder screens until Phases 5–6 | Phase 2 scope is setup only (SPEC §14) |
+| 2026-11-14 | "Switch to booking" button at the bottom of Business profile returns to customer mode; the app remembers the last mode | SPEC §6 says owners can still book as customers; the designs don't show the way back |
+| 2026-11-14 | Big serif headings grow at most 1.4× with the phone's text-size setting; body text up to 2× | At the largest iPhone text sizes the headings broke mid-word ("Cro W…"); body text stays fully scalable |
+| 2026-11-14 | Scrolling a form closes the keyboard | The iPhone number pad (ZIP, price) has no "Done" key and could hide the Continue button |
+| 2026-11-14 | Service description hint reads "What's included, and anything clients should know." instead of the design's "Looking for a quick cut?" | The design's example only fits a haircut; the hint shows for every service type |

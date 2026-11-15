@@ -118,6 +118,106 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '— owner setup (Phase 2)'
+begin;
+select tests.as_user('00000000-0000-4000-a000-000000000001');
+set local role authenticated;
+-- Everything an owner manages, for their own salon …
+do $$
+declare
+  lisa uuid := '10000000-0000-4000-a000-000000000001';
+  svc uuid; pro uuid;
+begin
+  insert into services (business_id, name, price_cents, duration_min) values (lisa, 'Gloss', 4500, 45) returning id into svc;
+  insert into professionals (business_id, first_name, role) values (lisa, 'Nia', 'colorist') returning id into pro;
+  insert into professional_services (professional_id, service_id) values (pro, svc);
+  insert into availability (professional_id, weekday, starts_at, ends_at) values (pro, 2, '10:00', '18:00');
+  insert into breaks (professional_id, weekday, starts_at, ends_at) values (pro, null, '13:00', '13:30');
+  insert into time_off (professional_id, starts_at, ends_at) values (pro, now() + interval '7 days', now() + interval '8 days');
+  insert into professional_photos (professional_id, url) values (pro, 'https://example.com/p.jpg');
+  insert into business_photos (business_id, url) values (lisa, 'https://example.com/b.jpg');
+  delete from business_hours where business_id = lisa and weekday = 2;
+  insert into business_hours (business_id, weekday, opens_at, closes_at) values (lisa, 2, '09:00', '17:00');
+  update businesses set amenities = array['Wi-Fi'], description = 'Cuts and color' where id = lisa;
+  delete from professionals where id = pro;
+  raise notice 'ok - owner can add and change services, team, hours, breaks, time off and photos for their salon';
+end $$;
+-- … and none of it for someone else's.
+do $$ begin
+  insert into services (business_id, name, price_cents, duration_min) values ('10000000-0000-4000-a000-000000000099', 'Sneaky', 100, 15);
+  raise exception 'FAIL: added a service to another owner''s salon';
+exception when insufficient_privilege then raise notice 'ok - owner cannot add services to another salon';
+end $$;
+do $$ begin
+  insert into availability (professional_id, weekday, starts_at, ends_at) values ('20000000-0000-4000-a000-000000000099', 1, '09:00', '10:00');
+  raise exception 'FAIL: set hours for another salon''s professional';
+exception when insufficient_privilege then raise notice 'ok - owner cannot set another salon''s staff hours';
+end $$;
+do $$ begin
+  insert into business_photos (business_id, url) values ('10000000-0000-4000-a000-000000000099', 'https://example.com/x.jpg');
+  raise exception 'FAIL: added a photo to another salon';
+exception when insufficient_privilege then raise notice 'ok - owner cannot add photos to another salon';
+end $$;
+delete from professionals where business_id = '10000000-0000-4000-a000-000000000099';
+select tests.expect((select count(*) from professionals where id = '20000000-0000-4000-a000-000000000099') = 0, 'owner cannot even see another salon''s unpublished staff');
+reset role;
+select tests.expect((select count(*) from professionals where id = '20000000-0000-4000-a000-000000000099') = 1, 'owner could not delete another salon''s staff');
+rollback;
+
+\echo '— payouts are server-only'
+begin;
+select tests.as_user('00000000-0000-4000-a000-000000000003');
+set local role authenticated;
+do $$ begin
+  update businesses set payouts_enabled = true where name = 'Hidden Salon';
+  raise exception 'FAIL: owner turned on payouts themselves';
+exception when insufficient_privilege then raise notice 'ok - owner cannot mark payouts as done (Stripe webhook only)';
+end $$;
+do $$ begin
+  update businesses set stripe_account_id = 'acct_fake' where name = 'Hidden Salon';
+  raise exception 'FAIL: owner set a Stripe account id';
+exception when insufficient_privilege then raise notice 'ok - owner cannot set the Stripe account';
+end $$;
+do $$ begin
+  insert into businesses (owner_id, name, payouts_enabled, is_published) values (auth.uid(), 'Instant Live', true, true);
+  raise exception 'FAIL: created a live salon without Stripe';
+exception when insufficient_privilege then raise notice 'ok - a new salon cannot start with payouts on';
+end $$;
+update businesses set name = 'Hidden Salon NYC' where name = 'Hidden Salon';
+select tests.expect(exists (select 1 from businesses where name = 'Hidden Salon NYC'), 'owner can still edit their salon''s details');
+reset role;
+update businesses set payouts_enabled = true, stripe_account_id = 'acct_test' where name = 'Hidden Salon NYC';
+select tests.expect((select payouts_enabled from businesses where name = 'Hidden Salon NYC'), 'the server (service role) can turn payouts on');
+rollback;
+
+\echo '— photo storage'
+begin;
+select tests.as_user('00000000-0000-4000-a000-000000000001');
+set local role authenticated;
+do $$ begin
+  insert into storage.objects (bucket_id, name) values ('photos', '10000000-0000-4000-a000-000000000001/photos/a.jpg');
+  raise notice 'ok - owner can upload photos to their salon''s folder';
+end $$;
+do $$ begin
+  insert into storage.objects (bucket_id, name) values ('photos', '10000000-0000-4000-a000-000000000099/photos/a.jpg');
+  raise exception 'FAIL: uploaded into another salon''s folder';
+exception when insufficient_privilege then raise notice 'ok - owner cannot upload into another salon''s folder';
+end $$;
+do $$ begin
+  insert into storage.objects (bucket_id, name) values ('photos', 'not-a-business/a.jpg');
+  raise exception 'FAIL: uploaded outside a business folder';
+exception when insufficient_privilege then raise notice 'ok - uploads must go in a business folder';
+end $$;
+rollback;
+begin;
+set local role anon;
+do $$ begin
+  insert into storage.objects (bucket_id, name) values ('photos', '10000000-0000-4000-a000-000000000001/photos/b.jpg');
+  raise exception 'FAIL: anonymous upload';
+exception when insufficient_privilege then raise notice 'ok - visitors who are not signed in cannot upload';
+end $$;
+rollback;
+
 \echo '— rules every role must follow'
 begin;
 do $$ begin

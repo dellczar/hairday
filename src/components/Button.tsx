@@ -50,9 +50,9 @@ export function Button({ title, variant = 'primary', icon, loading = false, disa
       {loading ? (
         <ActivityIndicator color={colors[l.fg]} />
       ) : (
-        <View style={styles.row}>
+        <View style={[styles.row, !icon && styles.fill]}>
           {icon}
-          <AppText variant="button" color={l.fg}>
+          <AppText variant="button" color={l.fg} style={!icon ? styles.fillText : undefined}>
             {title}
           </AppText>
         </View>
@@ -70,6 +70,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: touch },
+  // Without an icon the label spans the whole button (centered). On Android a label sized to its
+  // own measured width can come out a few pixels short and drop its last word ("Add time off").
+  fill: { alignSelf: 'stretch' },
+  // flexGrow (not flex: 1 or width 100%) so buttons that size to their label keep their natural width.
+  fillText: { flexGrow: 1, textAlign: 'center' },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.45 },
 });

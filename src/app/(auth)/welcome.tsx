@@ -11,6 +11,7 @@ import { AppleIcon, GoogleIcon, MailIcon } from '@/components/icons';
 import { useSession } from '@/hooks/useSession';
 import { signInWithApple } from '@/lib/auth';
 import { links } from '@/lib/links';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, fonts, radius, space } from '@/theme';
 
 const HERO_HEIGHT = 400;
@@ -122,7 +123,14 @@ export default function Welcome() {
             variant="label"
             color="onDark"
             style={[styles.link, { fontFamily: fonts.semibold }]}
-            onPress={() => router.push({ pathname: '/(auth)/email', params: { intent: 'business' } })}
+            onPress={() => {
+              // Demo mode (no Supabase yet): skip sign-in and go straight to setting up the business.
+              if (!isSupabaseConfigured) {
+                setGuest(true);
+                return router.push('/(business)/setup');
+              }
+              router.push({ pathname: '/(auth)/email', params: { intent: 'business' } });
+            }}
             accessibilityRole="link">
             List your business
           </AppText>

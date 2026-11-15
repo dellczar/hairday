@@ -8,16 +8,18 @@ type Props = Omit<PressableProps, 'children' | 'style'> & {
   accessibilityLabel: string;
   children: ReactNode;
   tone?: 'light' | 'dark';
+  /** No circle — just the icon (sheet close button). */
+  bare?: boolean;
 };
 
 /** 44×44 round button (back, close, favorite…). */
-export function IconButton({ children, tone = 'light', ...rest }: Props) {
+export function IconButton({ children, tone = 'light', bare = false, ...rest }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
       hitSlop={4}
       {...rest}
-      style={({ pressed }) => [styles.base, tone === 'dark' ? styles.dark : styles.light, pressed && { opacity: 0.8 }]}>
+      style={({ pressed }) => [styles.base, !bare && (tone === 'dark' ? styles.dark : styles.light), pressed && { opacity: 0.8 }]}>
       {children}
     </Pressable>
   );

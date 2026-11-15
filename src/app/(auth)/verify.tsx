@@ -36,8 +36,8 @@ export default function Verify() {
     try {
       await verifyEmailCode(email, value);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      // "List your business" goes on to Set up business in Phase 2; everyone else lands on Home.
-      router.replace(intent === 'business' ? '/(customer)/(tabs)/profile' : '/(customer)/(tabs)');
+      // "List your business" goes on to Set up business; everyone else lands on Home.
+      router.replace(intent === 'business' ? '/(business)/setup' : '/(customer)/(tabs)');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That code didn’t work.');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
@@ -69,7 +69,7 @@ export default function Verify() {
     <KeyboardAvoidingView style={styles.flex} behavior="padding">
       <ScrollView
         style={styles.flex}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 34 }]}>
         <BackButton />
         <Headline text="Check your" accent="inbox." style={styles.headline} />

@@ -17,10 +17,11 @@ trap cleanup EXIT
 psql() { "$PG/psql" -h "$DATA" -p "$PORT" -U postgres -d postgres -X -q -v ON_ERROR_STOP=1 "$@"; }
 
 psql -f "$ROOT/supabase/tests/auth_stub.sql"
-for f in "$ROOT"/supabase/migrations/*.sql; do echo "migration: $(basename "$f")"; psql -f "$f"; done
-# Supabase grants table access to these roles by default; RLS then decides which rows they see.
+# Like Supabase: new tables are open to these roles by default and RLS decides which rows they see.
+# Set before the migrations run, so any `revoke` a migration does still applies.
 psql -c "grant usage on schema public to anon, authenticated, service_role;
-         grant all on all tables in schema public to anon, authenticated, service_role;
-         grant execute on all functions in schema public to anon, authenticated, service_role;"
+         alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+         alter default privileges in schema public grant all on functions to anon, authenticated, service_role;"
+for f in "$ROOT"/supabase/migrations/*.sql; do echo "migration: $(basename "$f")"; psql -f "$f"; done
 echo "seed: seed.sql"; psql -f "$ROOT/supabase/seed.sql"
 psql -t -A -f "$ROOT/supabase/tests/rls_test.sql" 2>&1 | sed -e 's/^psql:[^ ]* NOTICE:  /  /' -e '/^$/d' -e '/^BEGIN$\|^ROLLBACK$/d'
