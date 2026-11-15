@@ -78,7 +78,7 @@ export default function BusinessProfile() {
         <PillButton
           title="Preview"
           variant="secondary"
-          onPress={() => Alert.alert('Preview', 'You’ll see your salon page the way clients do once the salon page is built (next phase).')}
+          onPress={() => router.push({ pathname: '/salon/[id]', params: { id: b.id, preview: '1' } })}
         />
       </View>
 

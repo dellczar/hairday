@@ -218,6 +218,52 @@ exception when insufficient_privilege then raise notice 'ok - visitors who are n
 end $$;
 rollback;
 
+\echo '— discovery: reviews and favorites (Phase 3)'
+begin;
+-- A review at the unpublished salon, and a favorite that belongs to another customer.
+insert into bookings (id, business_id, professional_id, customer_id, starts_at, ends_at, status) values
+  ('30000000-0000-4000-a000-000000000099', '10000000-0000-4000-a000-000000000099', '20000000-0000-4000-a000-000000000099',
+   '00000000-0000-4000-a000-000000000010', now() - interval '20 days', now() - interval '20 days' + interval '1 hour', 'completed');
+insert into reviews (booking_id, business_id, customer_id, rating, body) values
+  ('30000000-0000-4000-a000-000000000099', '10000000-0000-4000-a000-000000000099', '00000000-0000-4000-a000-000000000010', 1, 'Hidden review');
+insert into favorites (customer_id, business_id) values ('00000000-0000-4000-a000-000000000010', '10000000-0000-4000-a000-000000000001');
+set local role anon;
+select tests.expect((select count(*) from public_reviews) = 8, 'anon reads the 8 seed reviews of published salons');
+select tests.expect(not exists (select 1 from public_reviews where body = 'Hidden review'), 'reviews of an unpublished salon stay hidden');
+select tests.expect(exists (select 1 from public_reviews where reviewer_name = 'Dana T.'), 'reviewers show as first name + last initial');
+select tests.expect(not exists (select 1 from public_reviews where reviewer_name like '%Torres%'), 'a reviewer''s full last name is never shown');
+select tests.expect(not exists (
+  select 1 from information_schema.columns where table_name = 'public_reviews' and column_name in ('customer_id', 'booking_id')
+), 'public reviews expose no customer or booking ids');
+select tests.expect((select count(*) from profiles) = 0, 'the reviews view does not open up profiles');
+select tests.expect((select count(*) from favorites) = 0, 'anon cannot read favorites');
+do $$ begin
+  insert into favorites (customer_id, business_id) values ('00000000-0000-4000-a000-000000000010', '10000000-0000-4000-a000-000000000002');
+  raise exception 'FAIL: anon saved a favorite';
+exception when insufficient_privilege then raise notice 'ok - anon cannot save favorites';
+end $$;
+do $$ begin
+  update public_reviews set rating = 5;
+  raise exception 'FAIL: anon changed a review through the view';
+exception when insufficient_privilege or object_not_in_prerequisite_state or feature_not_supported then
+  raise notice 'ok - the reviews view is read-only';
+end $$;
+reset role;
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+select tests.expect((select count(*) from favorites) = 0, 'a customer cannot see someone else''s favorites');
+delete from favorites;
+reset role;
+select tests.expect((select count(*) from favorites) = 1, 'a customer cannot delete someone else''s favorites');
+select tests.as_user('00000000-0000-4000-a000-000000000010');
+set local role authenticated;
+select tests.expect((select count(*) from favorites) = 1, 'a customer sees their own favorites');
+insert into favorites (customer_id, professional_id) select auth.uid(), id from professionals where first_name = 'Marcus';
+select tests.expect((select count(*) from favorites) = 2, 'a customer can save a professional');
+delete from favorites where business_id is not null;
+select tests.expect((select count(*) from favorites) = 1, 'a customer can remove their own favorite');
+rollback;
+
 \echo '— rules every role must follow'
 begin;
 do $$ begin

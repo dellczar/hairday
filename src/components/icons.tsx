@@ -1,4 +1,4 @@
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 // Brand marks that lucide doesn't include. Paths copied from design/screens/Welcome.html.
 type P = { size?: number; color: string };
@@ -27,6 +27,17 @@ export function MailIcon({ size = 18, color }: P) {
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinejoin="round">
       <Rect x={3} y={5} width={18} height={14} rx={2} />
       <Path d="M3 7l9 6 9-6" />
+    </Svg>
+  );
+}
+
+/** Instagram glyph (Pro.html). */
+export function InstagramIcon({ size = 18, color }: P) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}>
+      <Rect x={4} y={4} width={16} height={16} rx={5} />
+      <Circle cx={12} cy={12} r={3.6} />
+      <Circle cx={16.8} cy={7.2} r={0.8} fill={color} />
     </Svg>
   );
 }

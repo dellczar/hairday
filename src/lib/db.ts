@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import { CATEGORIES } from './catalog';
 import { createChunkedStorage } from './chunkedStorage';
+import { addDemoSalons } from './demoSeed';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 import type { TableName, Tables } from './types';
 
@@ -116,6 +117,8 @@ const CASCADE: { [K in TableName]?: { table: TableName; column: string }[] } = {
     { table: 'business_hours', column: 'business_id' },
     { table: 'services', column: 'business_id' },
     { table: 'professionals', column: 'business_id' },
+    { table: 'public_reviews', column: 'business_id' },
+    { table: 'favorites', column: 'business_id' },
   ],
   services: [{ table: 'professional_services', column: 'service_id' }],
   professionals: [
@@ -124,6 +127,7 @@ const CASCADE: { [K in TableName]?: { table: TableName; column: string }[] } = {
     { table: 'availability', column: 'professional_id' },
     { table: 'breaks', column: 'professional_id' },
     { table: 'time_off', column: 'professional_id' },
+    { table: 'favorites', column: 'professional_id' },
   ],
 };
 
@@ -154,6 +158,7 @@ export function createDemoDb(persist: Persist): Db {
       saved = {};
     }
     if (!saved.categories?.length) saved.categories = CATEGORIES.map((c) => ({ id: `cat-${c.slug}`, ...c }));
+    addDemoSalons(saved); // the 3 sample salons customers can browse
     store = saved;
     return store;
   };

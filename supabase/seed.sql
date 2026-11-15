@@ -99,4 +99,38 @@ begin
       (biz.id, 'https://placehold.co/1200x800/CBBFB2/171826?text=Interior', 1),
       (biz.id, 'https://placehold.co/1200x800/CBBFB2/171826?text=Work', 2);
   end loop;
+
+  -- Reviews (Phase 3): three sample customers, each with past completed bookings they reviewed.
+  insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+  select u.id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', u.email, now(),
+         '{"provider":"email","providers":["email"]}', '{}', now(), now()
+  from (values
+    ('00000000-0000-4000-a000-000000000010'::uuid, 'dana@hairday.test'),
+    ('00000000-0000-4000-a000-000000000011'::uuid, 'tasha@hairday.test'),
+    ('00000000-0000-4000-a000-000000000012'::uuid, 'chris@hairday.test')
+  ) as u(id, email);
+  update profiles set first_name = 'Dana', last_name = 'Torres' where id = '00000000-0000-4000-a000-000000000010';
+  update profiles set first_name = 'Tasha', last_name = 'Williams' where id = '00000000-0000-4000-a000-000000000011';
+  update profiles set first_name = 'Chris', last_name = 'Morgan' where id = '00000000-0000-4000-a000-000000000012';
+
+  with r(customer, pro, days_ago, rating, tags, body) as (values
+    ('00000000-0000-4000-a000-000000000010'::uuid, 'April', 12, 5, '{"On time","Great result"}'::text[], 'April listened to exactly what I wanted and the cut still looks great.'),
+    ('00000000-0000-4000-a000-000000000011'::uuid, 'April', 30, 5, '{"Clean salon"}'::text[], 'Friendly, fast and the salon is spotless. Booking again.'),
+    ('00000000-0000-4000-a000-000000000012'::uuid, 'Jun', 45, 4, '{"Great result"}'::text[], 'Lovely color from Jun. Ran a few minutes late.'),
+    ('00000000-0000-4000-a000-000000000011'::uuid, 'Amara', 6, 5, '{"Great result","Friendly"}'::text[], 'Neatest knotless braids I''ve had. Amara is a pro.'),
+    ('00000000-0000-4000-a000-000000000010'::uuid, 'Keisha', 21, 5, '{"On time"}'::text[], 'Started right on time and finished when she said.'),
+    ('00000000-0000-4000-a000-000000000012'::uuid, 'Marcus', 3, 5, '{"Great result"}'::text[], 'Cleanest fade in Harlem.'),
+    ('00000000-0000-4000-a000-000000000010'::uuid, 'Luis', 18, 4, '{"Friendly"}'::text[], 'Good cut, a short wait on a Saturday.'),
+    ('00000000-0000-4000-a000-000000000011'::uuid, 'Marcus', 40, 5, '{"On time","Great result"}'::text[], 'Marcus took his time with the line-up. Worth it.')
+  ), b as (
+    insert into bookings (business_id, professional_id, customer_id, starts_at, ends_at, status)
+    select p.business_id, p.id, r.customer,
+           date_trunc('day', now()) - make_interval(days => r.days_ago) + interval '15 hours',
+           date_trunc('day', now()) - make_interval(days => r.days_ago) + interval '16 hours', 'completed'
+    from r join professionals p on p.first_name = r.pro
+    returning bookings.id, bookings.business_id, bookings.professional_id, bookings.customer_id as cust, bookings.starts_at
+  )
+  insert into reviews (booking_id, business_id, professional_id, customer_id, rating, tags, body, created_at)
+  select b.id, b.business_id, b.professional_id, b.cust, r.rating, r.tags, r.body, b.starts_at + interval '3 hours'
+  from b join professionals p on p.id = b.professional_id join r on r.pro = p.first_name and r.customer = b.cust;
 end $$;

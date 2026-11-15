@@ -118,3 +118,63 @@ export function addDays(date: string, days: number): string {
   const [y, m, d] = date.split('-').map((n) => parseInt(n, 10)) as [number, number, number];
   return isoDate(new Date(y, m - 1, d + days));
 }
+
+const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/** The salon's own clock at an instant: weekday (0 = Sunday), minutes after midnight, and 'YYYY-MM-DD'. */
+export function zonedClock(at: Date, timeZone: string): { weekday: number; minutes: number; date: string } {
+  const f = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    weekday: 'short',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(at);
+  const get = (type: string) => f.find((p) => p.type === type)?.value ?? '';
+  return {
+    weekday: WEEKDAY_INDEX[get('weekday')] ?? 0,
+    minutes: (parseInt(get('hour'), 10) % 24) * 60 + parseInt(get('minute'), 10),
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+  };
+}
+
+/** 'Mon'…'Sun' for 0–6. */
+export const SHORT_DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+/** 1200 → '8 PM', 630 → '10:30 AM' (salon cards: "Open until 8 PM"). */
+export function formatHour(min: number): string {
+  const t = formatTime(min);
+  return t.replace(':00 ', ' ');
+}
+
+type Hours = { weekday: number; opens_at: string; closes_at: string }[];
+
+/**
+ * "Open until 8 PM", "Opens at 10 AM", "Opens Tue 10 AM" or "Closed" — worked out on the
+ * salon's clock, from its weekly hours (several rows per day allowed, SPEC §7).
+ */
+export function openStatus(hours: Hours, at: Date, timeZone: string): { open: boolean; label: string } {
+  const now = zonedClock(at, timeZone);
+  const today = hours.filter((h) => h.weekday === now.weekday).map((h) => ({ from: toMinutes(h.opens_at), to: toMinutes(h.closes_at) }));
+  const current = today.find((h) => now.minutes >= h.from && now.minutes < h.to);
+  if (current) return { open: true, label: `Open until ${formatHour(current.to)}` };
+  const laterToday = today.filter((h) => h.from > now.minutes).sort((a, b) => a.from - b.from)[0];
+  if (laterToday) return { open: false, label: `Opens at ${formatHour(laterToday.from)}` };
+  for (let i = 1; i <= 7; i++) {
+    const day = (now.weekday + i) % 7;
+    const first = hours.filter((h) => h.weekday === day).map((h) => toMinutes(h.opens_at)).sort((a, b) => a - b)[0];
+    if (first !== undefined) return { open: false, label: `Opens ${i === 1 ? 'tomorrow' : SHORT_DAY[day]} ${formatHour(first)}` };
+  }
+  return { open: false, label: 'Hours not set' };
+}
+
+/** "Tue – Sat" style weekly summary rows for the salon About tab, Monday first. */
+export function weeklyHours(hours: Hours): { day: string; text: string }[] {
+  return WEEK.map((d) => {
+    const rows = hours.filter((h) => h.weekday === d.weekday).sort((a, b) => toMinutes(a.opens_at) - toMinutes(b.opens_at));
+    return { day: d.full, text: rows.length ? rows.map((h) => formatRange(h.opens_at, h.closes_at)).join(', ') : 'Closed' };
+  });
+}

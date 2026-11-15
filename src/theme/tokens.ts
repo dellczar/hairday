@@ -25,8 +25,19 @@ export const colors = {
   onDarkLineStrong: 'rgba(245,240,234,0.4)', // Skip pill border
   onDarkFill: 'rgba(245,240,234,0.12)', // notice box on navy
   inkGlass: 'rgba(23,24,38,0.35)', // see-through navy over photos
+  inkGlassStrong: 'rgba(23,24,38,0.7)', // photo counter pill (Salon.html)
   white: '#FFFFFF',
   danger: '#B3261E', // form errors (6.1:1 on bg)
+  // Home service tiles (Main.html): six tan shades, used until category photos exist.
+  tile1: '#D8CCBF',
+  tile2: '#C9B9A8',
+  tile3: '#E2D6C9',
+  tile4: '#BFAE9C',
+  tile5: '#D3C4B4',
+  tile6: '#C4B3A2',
+  mapLand: '#E6DED3', // drawn map (Results.html) — land
+  mapRoad: '#F4EFE8', // drawn map — streets
+  mapPark: '#D5DACB', // drawn map — park
 } as const;
 
 export const radius = {

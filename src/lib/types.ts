@@ -82,6 +82,25 @@ export type Break = { id: string; professional_id: string; weekday: number | nul
 
 export type TimeOff = { id: string; professional_id: string; starts_at: string; ends_at: string; note: string | null };
 
+/**
+ * A review as customers see it: the `public_reviews` view (reviewer shown as "Dana T.", no ids).
+ * Read-only; customers write reviews in Phase 7.
+ */
+export type PublicReview = {
+  id: string;
+  business_id: string;
+  professional_id: string | null;
+  rating: number;
+  tags: string[];
+  body: string | null;
+  photo_url: string | null;
+  created_at: string;
+  reviewer_name: string;
+};
+
+/** Exactly one of business_id / professional_id is set. */
+export type Favorite = { id: string; customer_id: string; business_id: string | null; professional_id: string | null };
+
 export type Tables = {
   businesses: Business;
   business_photos: BusinessPhoto;
@@ -94,6 +113,8 @@ export type Tables = {
   availability: Availability;
   breaks: Break;
   time_off: TimeOff;
+  public_reviews: PublicReview;
+  favorites: Favorite;
 };
 
 export type TableName = keyof Tables;

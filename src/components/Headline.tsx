@@ -22,6 +22,8 @@ export function Headline({ text, accent, breakBefore = false, onDark = false, si
   return (
     <Text
       accessibilityRole="header"
+      // Same cap as AppText's serif styles: big headings grow at most 1.4x with the phone's text size.
+      maxFontSizeMultiplier={1.4}
       style={[type[size], { color: onDark ? colors.onDark : colors.ink }, style]}>
       {text}
       {breakBefore ? '\n' : ' '}

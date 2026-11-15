@@ -7,7 +7,8 @@ type Props = Omit<PressableProps, 'children' | 'style'> & {
   /** Required: icon-only buttons must have a screen reader label. */
   accessibilityLabel: string;
   children: ReactNode;
-  tone?: 'light' | 'dark';
+  /** light = white with a border; white = no border (over photos); dark = navy. */
+  tone?: 'light' | 'white' | 'dark';
   /** No circle — just the icon (sheet close button). */
   bare?: boolean;
 };
@@ -19,7 +20,7 @@ export function IconButton({ children, tone = 'light', bare = false, ...rest }: 
       accessibilityRole="button"
       hitSlop={4}
       {...rest}
-      style={({ pressed }) => [styles.base, !bare && (tone === 'dark' ? styles.dark : styles.light), pressed && { opacity: 0.8 }]}>
+      style={({ pressed }) => [styles.base, !bare && styles[tone], pressed && { opacity: 0.8 }]}>
       {children}
     </Pressable>
   );
@@ -28,5 +29,6 @@ export function IconButton({ children, tone = 'light', bare = false, ...rest }: 
 const styles = StyleSheet.create({
   base: { width: touch, height: touch, borderRadius: touch / 2, alignItems: 'center', justifyContent: 'center' },
   light: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
+  white: { backgroundColor: colors.surface },
   dark: { backgroundColor: colors.ink },
 });
