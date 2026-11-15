@@ -81,3 +81,4 @@
 | 2026-11-17 | Walk-in sheet: client is optional (a typed new name is added to the client list), one service, "Next open times" from now with no lead time, over the next 8 days. Walk-ins pay at the salon | Calendar.html; SPEC §9 walk-ins skip online payment |
 | 2026-11-17 | Clients: email and phone are optional and checked separately; "Import from contacts" asks for permission only when tapped and imports only the people picked, skipping anyone already on the list | SPEC §10, §12 |
 | 2026-11-17 | Added a Prettier settings file (single quotes, 140-character lines) matching the existing code | Formatting without settings had switched some Phase 5 files to a different style |
+| 2026-11-17 | After an owner or booking action, screens refresh in the background instead of keeping the button spinning until every screen has reloaded | Found on Android: a salon cancel finished on the server but the sheet kept spinning while the slow emulator reloaded |

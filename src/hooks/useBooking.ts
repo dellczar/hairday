@@ -94,7 +94,7 @@ export function useCreateHold() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (req: HoldRequest) => getDb().createHold(req),
-    onSettled: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: [KEY] }), // refresh in the background
   });
 }
 
@@ -132,7 +132,7 @@ export function useReleaseHold() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (bookingId: string) => getDb().releaseHold(bookingId),
-    onSettled: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: [KEY] }), // refresh in the background
   });
 }
 
@@ -154,7 +154,7 @@ export function useConfirmBooking() {
       await db.confirmBooking(bookingId);
       return true;
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: [KEY] }), // refresh in the background
   });
 }
 
@@ -207,6 +207,6 @@ export function useCancelBooking() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (bookingId: string) => getDb().cancelBooking(bookingId),
-    onSettled: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: [KEY] }), // refresh in the background
   });
 }

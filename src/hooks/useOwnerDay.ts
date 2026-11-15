@@ -80,7 +80,8 @@ function useDayAction<A, R>(fn: (a: A) => Promise<R>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (a: A) => fn(a),
-    onSettled: () => qc.invalidateQueries({ queryKey: ['owner'] }),
+    // Refresh in the background: don't keep the button spinning while every owner screen reloads.
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['owner'] }),
   });
 }
 
