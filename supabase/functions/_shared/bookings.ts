@@ -134,7 +134,9 @@ export async function chargeBooking(db: SupabaseClient, stripe: Stripe, b: Booki
         metadata: { booking_id: b.id },
         ...(destination ? { transfer_data: { destination }, application_fee_amount: fee || undefined } : {}),
       },
-      { idempotencyKey: `charge-${b.id}-${amount}` },
+      // Same booking, amount and card → never charged twice. A new card gets a fresh try (Stripe replays
+      // the first answer to a key, a decline included, for 24 hours).
+      { idempotencyKey: `charge-${b.id}-${amount}-${b.stripe_payment_method_id ?? 'none'}` },
     );
     await db
       .from('bookings')

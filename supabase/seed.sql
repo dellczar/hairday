@@ -92,12 +92,13 @@ begin
   insert into breaks (professional_id, weekday, starts_at, ends_at)
   select id, null, '13:00', '13:30' from professionals;
 
-  -- Photo placeholders (replaced with real Storage uploads in Phase 2).
+  -- Photo placeholders: plain tan blocks in the design's shades (same as src/lib/demoSeed.ts),
+  -- until salons upload real photos.
   for biz in select id from businesses loop
     insert into business_photos (business_id, url, sort_order) values
-      (biz.id, 'https://placehold.co/1200x800/CBBFB2/171826?text=Salon', 0),
-      (biz.id, 'https://placehold.co/1200x800/CBBFB2/171826?text=Interior', 1),
-      (biz.id, 'https://placehold.co/1200x800/CBBFB2/171826?text=Work', 2);
+      (biz.id, 'https://placehold.co/1200x800/D8CCBF/D8CCBF.png', 0),
+      (biz.id, 'https://placehold.co/1200x800/C9B9A8/C9B9A8.png', 1),
+      (biz.id, 'https://placehold.co/1200x800/E2D6C9/E2D6C9.png', 2);
   end loop;
 
   -- Reviews (Phase 3): three sample customers, each with past completed bookings they reviewed.

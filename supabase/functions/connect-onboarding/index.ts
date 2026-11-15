@@ -35,14 +35,23 @@ Deno.serve(
     if (!accountId) {
       const acct = await s.accounts.create(
         {
-          type: 'express',
+          // Stripe's current way to say "Express": Stripe hosts onboarding and the salon's dashboard,
+          // Hairday (the platform) collects payments and is responsible for refunds and disputes.
+          controller: {
+            stripe_dashboard: { type: 'express' },
+            fees: { payer: 'application' },
+            losses: { payments: 'application' },
+            requirement_collection: 'stripe',
+          },
           country: 'US',
           email: user.email ?? undefined,
           business_profile: { name: biz.name, mcc: '7230' }, // 7230 = beauty and barber shops
           capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
           metadata: { business_id: biz.id },
         },
-        { idempotencyKey: `connect-${biz.id}` },
+        // Guards against a double tap only. A fixed key would make Stripe replay an old answer (even an
+        // error) for 24 hours, so it changes every minute.
+        { idempotencyKey: `connect-${biz.id}-${Math.floor(Date.now() / 60_000)}` },
       );
       accountId = acct.id;
       await db.from('businesses').update({ stripe_account_id: accountId }).eq('id', biz.id);
