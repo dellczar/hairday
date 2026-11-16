@@ -109,7 +109,7 @@ function periodOf(min: number): Period {
 }
 
 /** Where a professional can work that day, before bookings: their hours ∩ salon hours − breaks − time off. */
-function workingRanges(pro: ProSchedule, weekday: number, salon: Range[], dayStart: Date, q: SlotQuery): Range[] {
+function workingRanges(pro: ProSchedule, weekday: number, salon: Range[], dayStart: Date, q: DayQuery): Range[] {
   const own = pro.availability.filter((a) => a.weekday === weekday).map((a) => [toMinutes(a.starts_at), toMinutes(a.ends_at)] as Range);
   const breaks = pro.breaks
     .filter((b) => b.weekday === null || b.weekday === weekday)
@@ -119,24 +119,44 @@ function workingRanges(pro: ProSchedule, weekday: number, salon: Range[], daySta
 
 const fits = (ranges: Range[], start: number, end: number) => ranges.some(([a, b]) => start >= a && end <= b);
 
+export type DayQuery = Pick<SlotQuery, 'date' | 'timeZone' | 'businessHours' | 'pros'>;
+
+export type ProDay = {
+  id: string;
+  /** Minutes on the salon's clock when they can work: their hours ∩ salon hours − breaks − time off. */
+  working: [number, number][];
+  /** working − bookings: the gaps that are still open. */
+  free: [number, number][];
+  /** Bookings that day (for "Anyone", SPEC §8). */
+  load: number;
+};
+
+/** Who can work when on one salon day, and what's still open. Empty when the salon is closed. */
+export function dayPlan(q: DayQuery): { open: [number, number][]; pros: ProDay[] } {
+  const dayStart = zonedTimeToUtc(q.date, 0, q.timeZone);
+  const weekday = zonedClock(new Date(dayStart.getTime() + 12 * 3_600_000), q.timeZone).weekday; // noon is safely inside the day
+  const salon = q.businessHours.filter((h) => h.weekday === weekday).map((h) => [toMinutes(h.opens_at), toMinutes(h.closes_at)] as Range);
+  if (!salon.length) return { open: [], pros: [] }; // closed that day
+  const pros = q.pros.map((pro) => {
+    const working = workingRanges(pro, weekday, salon, dayStart, q);
+    const taken = toDayRanges(pro.bookings, dayStart, q.timeZone, q.date);
+    const load = taken.filter(([a, b]) => b > 0 && a < DAY).length;
+    return { id: pro.id, working, free: subtract(working, taken), load };
+  });
+  return { open: salon, pros };
+}
+
 /** Every bookable (and crossed-out) start time for one day. */
 export function getAvailableSlots(q: SlotQuery): Slot[] {
   const step = q.step ?? 15;
   const lead = q.leadMin ?? 60;
   if (q.durationMin <= 0) return [];
-  const dayStart = zonedTimeToUtc(q.date, 0, q.timeZone);
-  const weekday = zonedClock(new Date(dayStart.getTime() + 12 * 3_600_000), q.timeZone).weekday; // noon is safely inside the day
-  const salon = q.businessHours.filter((h) => h.weekday === weekday).map((h) => [toMinutes(h.opens_at), toMinutes(h.closes_at)] as Range);
+  const day = dayPlan({ ...q, pros: q.proId === 'any' ? q.pros : q.pros.filter((p) => p.id === q.proId) });
+  const salon = day.open;
   if (!salon.length) return []; // closed that day
 
-  const pros = q.proId === 'any' ? q.pros : q.pros.filter((p) => p.id === q.proId);
-  const plans = pros.map((pro) => {
-    const working = workingRanges(pro, weekday, salon, dayStart, q);
-    const taken = toDayRanges(pro.bookings, dayStart, q.timeZone, q.date);
-    // "Anyone" goes to whoever has the fewest bookings that day (SPEC §8).
-    const load = taken.filter(([a, b]) => b > 0 && a < DAY).length;
-    return { pro, working, free: subtract(working, taken), load };
-  });
+  // "Anyone" goes to whoever has the fewest bookings that day (SPEC §8).
+  const plans = day.pros.map((p) => ({ pro: { id: p.id }, working: p.working, free: p.free, load: p.load }));
   plans.sort((a, b) => a.load - b.load || a.pro.id.localeCompare(b.pro.id));
 
   const earliest = q.now.getTime() + lead * 60_000;

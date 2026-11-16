@@ -1,20 +1,13 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { Check, Navigation } from "lucide-react-native";
-import {
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router, useLocalSearchParams } from 'expo-router';
+import { Check, Navigation } from 'lucide-react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Button, Headline, Skeleton } from "@/components";
-import { useHeldBooking } from "@/hooks/useBooking";
-import { formatDuration, formatTime, zonedClock } from "@/lib/hours";
-import { directionsUrl } from "@/lib/links";
-import { colors, fonts, radius, space } from "@/theme";
+import { AppText, Button, Headline, Skeleton } from '@/components';
+import { useHeldBooking } from '@/hooks/useBooking';
+import { formatDuration, formatTime, zonedClock } from '@/lib/hours';
+import { directionsUrl } from '@/lib/links';
+import { colors, fonts, radius, space } from '@/theme';
 
 /**
  * "You're booked." (Booked.html). Email confirmations, reminders and Add to calendar arrive with
@@ -29,37 +22,29 @@ export default function Booked() {
   const q = useHeldBooking(bookingId);
   const d = q.data;
 
-  const tz = d?.business?.time_zone ?? "America/New_York";
+  const tz = d?.business?.time_zone ?? 'America/New_York';
   const start = d ? new Date(d.booking.starts_at) : null;
-  const month = start
-    ?.toLocaleDateString("en-US", { timeZone: tz, month: "short" })
-    .toUpperCase();
-  const day = start?.toLocaleDateString("en-US", {
+  const month = start?.toLocaleDateString('en-US', { timeZone: tz, month: 'short' }).toUpperCase();
+  const day = start?.toLocaleDateString('en-US', {
     timeZone: tz,
-    day: "numeric",
+    day: 'numeric',
   });
-  const weekday = start?.toLocaleDateString("en-US", {
+  const weekday = start?.toLocaleDateString('en-US', {
     timeZone: tz,
-    weekday: "long",
+    weekday: 'long',
   });
   const minutes = d?.items.reduce((s, i) => s + i.duration_min, 0) ?? 0;
 
   return (
     <View style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 34 },
-        ]}
-      >
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 34 }]}>
         <View style={styles.top}>
           <View style={styles.badge} accessible={false}>
             <Check size={40} strokeWidth={2.2} color={colors.onGold} />
           </View>
           <Headline text="You’re" accent="booked." style={styles.h1} />
           <AppText color="muted" style={styles.lead}>
-            Your card is saved and you won’t be charged until after your
-            appointment.
+            Your card is saved and you won’t be charged until after your appointment.
           </AppText>
         </View>
 
@@ -68,11 +53,7 @@ export default function Booked() {
         ) : (
           <View style={styles.card}>
             <View style={styles.cardBody}>
-              <View
-                style={styles.date}
-                accessible
-                accessibilityLabel={`${weekday} ${month} ${day}`}
-              >
+              <View style={styles.date} accessible accessibilityLabel={`${weekday} ${month} ${day}`}>
                 <AppText style={styles.month} color="white">
                   {month}
                 </AppText>
@@ -85,35 +66,21 @@ export default function Booked() {
                   {weekday} · {formatTime(zonedClock(start, tz).minutes)}
                 </AppText>
                 <AppText variant="small" color="muted">
-                  {d.items.map((i) => i.name).join(", ")}
-                  {d.pro ? ` with ${d.pro.first_name}` : ""} ·{" "}
-                  {formatDuration(minutes)}
+                  {d.items.map((i) => i.name).join(', ')}
+                  {d.pro ? ` with ${d.pro.first_name}` : ''} · {formatDuration(minutes)}
                 </AppText>
                 <AppText variant="small" color="muted">
                   {d.business?.name}
-                  {d.business?.address_line1
-                    ? `, ${d.business.address_line1}`
-                    : ""}
+                  {d.business?.address_line1 ? `, ${d.business.address_line1}` : ''}
                 </AppText>
               </View>
             </View>
             {d.business ? (
               <Pressable
-                style={({ pressed }) => [
-                  styles.action,
-                  pressed && styles.pressed,
-                ]}
+                style={({ pressed }) => [styles.action, pressed && styles.pressed]}
                 accessibilityRole="link"
                 accessibilityLabel={`Directions to ${d.business.name}`}
-                onPress={() =>
-                  Linking.openURL(
-                    directionsUrl(
-                      d.business!,
-                      Platform.OS === "ios" ? "ios" : "android",
-                    ),
-                  ).catch(() => {})
-                }
-              >
+                onPress={() => Linking.openURL(directionsUrl(d.business!, Platform.OS === 'ios' ? 'ios' : 'android')).catch(() => {})}>
                 <Navigation size={18} strokeWidth={1.8} color={colors.ink} />
                 <AppText style={styles.actionText}>Directions</AppText>
               </Pressable>
@@ -123,15 +90,8 @@ export default function Booked() {
 
         <View style={styles.flex1} />
         <View style={styles.buttons}>
-          <Button
-            title="View my bookings"
-            onPress={() => router.replace("/(customer)/(tabs)/bookings")}
-          />
-          <Button
-            title="Back to home"
-            variant="secondary"
-            onPress={() => router.replace("/(customer)/(tabs)")}
-          />
+          <Button title="View my bookings" onPress={() => router.replace('/(customer)/(tabs)/bookings')} />
+          <Button title="Back to home" variant="secondary" onPress={() => router.replace('/(customer)/(tabs)')} />
         </View>
       </ScrollView>
     </View>
@@ -141,43 +101,43 @@ export default function Booked() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { flexGrow: 1, paddingHorizontal: space.screen, gap: 32 },
-  top: { alignItems: "center", gap: 14 },
+  top: { alignItems: 'center', gap: 14 },
   badge: {
     width: 84,
     height: 84,
     borderRadius: 42,
     backgroundColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   h1: {
     fontSize: 44,
     lineHeight: 46,
     letterSpacing: -1,
     marginTop: 8,
-    textAlign: "center",
+    textAlign: 'center',
   },
-  lead: { textAlign: "center", maxWidth: 290, fontSize: 15, lineHeight: 22 },
+  lead: { textAlign: 'center', maxWidth: 290, fontSize: 15, lineHeight: 22 },
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.cardLine,
     borderRadius: radius.bigCard,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   cardBody: {
     padding: 18,
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 14,
-    alignItems: "center",
+    alignItems: 'center',
   },
   date: {
     width: 56,
     minHeight: 60,
     borderRadius: 14,
     backgroundColor: colors.ink,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 6,
   },
   month: {
@@ -193,9 +153,9 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderTopWidth: 1,
     borderTopColor: colors.lineSoft,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: space.s,
   },
   actionText: { fontFamily: fonts.medium, fontSize: 14 },

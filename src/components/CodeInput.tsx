@@ -51,6 +51,7 @@ export const CodeInput = forwardRef<CodeInputHandle, Props>(function CodeInput({
         caretHidden
         accessibilityLabel="Verification code, 6 digits"
         accessibilityHint={value ? `${value.length} of 6 digits entered` : undefined}
+        selectionColor="transparent"
         style={styles.hidden}
       />
     </Pressable>
@@ -72,5 +73,12 @@ const styles = StyleSheet.create({
   boxActive: { borderWidth: 2, borderColor: colors.gold },
   boxError: { borderColor: colors.danger },
   // Kept on screen (not display:none) so autofill and screen readers can reach it.
-  hidden: { ...StyleSheet.absoluteFill, opacity: 0.011, color: 'transparent', ...type.digit },
+  // Android ignores the transparent color, so its digits showed faintly behind the first box: shrink them away.
+  hidden: {
+    ...StyleSheet.absoluteFill,
+    opacity: 0.011,
+    color: 'transparent',
+    ...type.digit,
+    ...(Platform.OS === 'android' ? { fontSize: 1, lineHeight: 2 } : null),
+  },
 });

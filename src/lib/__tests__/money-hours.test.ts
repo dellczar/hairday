@@ -1,5 +1,16 @@
 import { formatPrice, parsePrice, priceError } from '../money';
-import { addDays, clampDuration, formatDuration, formatRange, formatTime, fromMinutes, openSummary, toMinutes, WEEK, zonedDayStart } from '../hours';
+import {
+  addDays,
+  clampDuration,
+  formatDuration,
+  formatRange,
+  formatTime,
+  fromMinutes,
+  openSummary,
+  toMinutes,
+  WEEK,
+  zonedDayStart,
+} from '../hours';
 
 describe('money', () => {
   it('formats whole and partial dollars', () => {

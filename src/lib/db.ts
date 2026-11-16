@@ -1,20 +1,13 @@
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from 'expo-secure-store';
 
-import { CATEGORIES } from "./catalog";
-import { createChunkedStorage } from "./chunkedStorage";
-import { addDemoSalons } from "./demoSeed";
-import { getSupabase, isSupabaseConfigured } from "./supabase";
-import { getAvailableSlots, isLive } from "./availability";
-import { zonedClock } from "./hours";
-import { cancellationQuote, bookingTotals, isTipChoice } from "./payments";
-import type {
-  BusyTime,
-  CardSetup,
-  HoldRequest,
-  PayoutsStatus,
-  TableName,
-  Tables,
-} from "./types";
+import { CATEGORIES } from './catalog';
+import { createChunkedStorage } from './chunkedStorage';
+import { addDemoSalons } from './demoSeed';
+import { getSupabase, isSupabaseConfigured } from './supabase';
+import { getAvailableSlots, isLive } from './availability';
+import { zonedClock } from './hours';
+import { cancellationQuote, bookingTotals, isTipChoice } from './payments';
+import type { BusyTime, CardSetup, HoldRequest, PayoutsStatus, TableName, Tables, WalkInRequest } from './types';
 
 /**
  * The few table operations the screens need, behind one small interface.
@@ -31,24 +24,10 @@ export interface Db {
   readonly demo: boolean;
   /** Signed-in user's id (in demo mode, a fixed id for "you"). */
   userId(): Promise<string | null>;
-  select<K extends TableName>(
-    table: K,
-    filter?: Filter<Tables[K]>,
-    orderBy?: keyof Tables[K] & string,
-  ): Promise<Tables[K][]>;
-  insert<K extends TableName>(
-    table: K,
-    rows: Partial<Tables[K]>[],
-  ): Promise<Tables[K][]>;
-  update<K extends TableName>(
-    table: K,
-    filter: Filter<Tables[K]>,
-    patch: Partial<Tables[K]>,
-  ): Promise<Tables[K][]>;
-  remove<K extends TableName>(
-    table: K,
-    filter: Filter<Tables[K]>,
-  ): Promise<void>;
+  select<K extends TableName>(table: K, filter?: Filter<Tables[K]>, orderBy?: keyof Tables[K] & string): Promise<Tables[K][]>;
+  insert<K extends TableName>(table: K, rows: Partial<Tables[K]>[]): Promise<Tables[K][]>;
+  update<K extends TableName>(table: K, filter: Filter<Tables[K]>, patch: Partial<Tables[K]>): Promise<Tables[K][]>;
+  remove<K extends TableName>(table: K, filter: Filter<Tables[K]>): Promise<void>;
   /** Upload a photo from the phone; returns the URL to save on the row. `folder` starts with the business id. */
   upload(folder: string, localUri: string): Promise<string>;
   /** When each professional at a salon is busy (bookings, live holds, time off). Public. */
@@ -64,16 +43,17 @@ export interface Db {
   /** Cancels, charging what the rules say; returns the cents charged (server function cancel-booking). */
   cancelBooking(bookingId: string): Promise<{ charged_cents: number }>;
   /** Payouts: a Stripe onboarding link ('start') or where setup stands ('status'). */
-  payouts(
-    businessId: string,
-    action: "start",
-  ): Promise<{ url?: string } & Partial<PayoutsStatus>>;
-  payouts(businessId: string, action: "status"): Promise<PayoutsStatus>;
+  payouts(businessId: string, action: 'start'): Promise<{ url?: string } & Partial<PayoutsStatus>>;
+  payouts(businessId: string, action: 'status'): Promise<PayoutsStatus>;
+  /** Owner: a walk-in on the calendar (no online payment). The server checks it doesn't overlap. */
+  addWalkIn(req: WalkInRequest): Promise<string>;
+  /** Owner: once an appointment has started, mark it completed or a no-show. */
+  markBooking(bookingId: string, status: 'completed' | 'no_show'): Promise<void>;
 }
 
 // ─────────────────────────────────────────────────────────── Supabase
 
-export const PHOTO_BUCKET = "photos";
+export const PHOTO_BUCKET = 'photos';
 
 function supabaseDb(): Db {
   const sb = () => getSupabase();
@@ -90,13 +70,7 @@ function supabaseDb(): Db {
     }
     return q;
   };
-  const check = <T>({
-    data,
-    error,
-  }: {
-    data: T | null;
-    error: { message: string } | null;
-  }): T => {
+  const check = <T>({ data, error }: { data: T | null; error: { message: string } | null }): T => {
     if (error) throw new Error(friendlyDbError(error.message));
     return data as T;
   };
@@ -107,7 +81,7 @@ function supabaseDb(): Db {
       return data.session?.user.id ?? null;
     },
     async select(table, filter, orderBy) {
-      let q = applyFilter(from(table).select("*"), filter);
+      let q = applyFilter(from(table).select('*'), filter);
       if (orderBy) q = q.order(orderBy);
       return check(await q);
     },
@@ -115,9 +89,7 @@ function supabaseDb(): Db {
       return check(await from(table).insert(rows).select());
     },
     async update(table, filter, patch) {
-      return check(
-        await applyFilter(from(table).update(patch), filter).select(),
-      );
+      return check(await applyFilter(from(table).update(patch), filter).select());
     },
     async remove(table, filter) {
       check(await applyFilter(from(table).delete(), filter));
@@ -125,7 +97,7 @@ function supabaseDb(): Db {
     async busyTimes(businessId, from, to) {
       return (
         check(
-          await sb().rpc("busy_times", {
+          await sb().rpc('busy_times', {
             p_business: businessId,
             p_from: from,
             p_to: to,
@@ -134,7 +106,7 @@ function supabaseDb(): Db {
       );
     },
     async createHold(req) {
-      const { data, error } = await sb().rpc("create_hold", {
+      const { data, error } = await sb().rpc('create_hold', {
         p_business: req.business_id,
         p_professional: req.professional_id,
         p_service_ids: req.service_ids,
@@ -144,55 +116,62 @@ function supabaseDb(): Db {
       return data as string;
     },
     async releaseHold(bookingId) {
-      check(await sb().rpc("release_hold", { p_booking: bookingId }));
+      check(await sb().rpc('release_hold', { p_booking: bookingId }));
     },
     async startCardSetup(bookingId, tipPercent) {
-      return callFunction<CardSetup>("save-card", {
+      return callFunction<CardSetup>('save-card', {
         booking_id: bookingId,
         tip_percent: tipPercent,
       });
     },
     async confirmBooking(bookingId) {
-      await callFunction("confirm-booking", { booking_id: bookingId });
+      await callFunction('confirm-booking', { booking_id: bookingId });
     },
     async cancelBooking(bookingId) {
-      return callFunction<{ charged_cents: number }>("cancel-booking", {
+      return callFunction<{ charged_cents: number }>('cancel-booking', {
         booking_id: bookingId,
       });
     },
-    payouts: ((businessId: string, action: "start" | "status") =>
-      callFunction("connect-onboarding", {
+    payouts: ((businessId: string, action: 'start' | 'status') =>
+      callFunction('connect-onboarding', {
         business_id: businessId,
         action,
-      })) as Db["payouts"],
+      })) as Db['payouts'],
+    async addWalkIn(req) {
+      const { data, error } = await sb().rpc('add_walk_in', {
+        p_business: req.business_id,
+        p_professional: req.professional_id,
+        p_client: req.client_id,
+        p_service_ids: req.service_ids,
+        p_starts_at: req.starts_at,
+      });
+      if (error) throw new Error(holdError(error));
+      return data as string;
+    },
+    async markBooking(bookingId, status) {
+      const { error } = await sb().rpc('mark_booking', { p_booking: bookingId, p_status: status });
+      if (error) throw new Error(holdError(error));
+    },
     async upload(folder, localUri) {
       const body = await (await fetch(localUri)).arrayBuffer();
       const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-      check(
-        await sb()
-          .storage.from(PHOTO_BUCKET)
-          .upload(path, body, { contentType: "image/jpeg" }),
-      );
+      check(await sb().storage.from(PHOTO_BUCKET).upload(path, body, { contentType: 'image/jpeg' }));
       return sb().storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
     },
   };
 }
 
 /** Calls a server function (supabase/functions/<name>); its errors are already written for people. */
-async function callFunction<T = unknown>(
-  name: string,
-  body: Record<string, unknown>,
-): Promise<T> {
+async function callFunction<T = unknown>(name: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await getSupabase().functions.invoke(name, { body });
   if (error) {
     const res = (error as { context?: Response }).context;
-    let message = "Something went wrong. Please try again.";
+    let message = 'Something went wrong. Please try again.';
     try {
       const j = (await res?.json()) as { error?: string } | undefined;
       if (j?.error) message = j.error;
     } catch {
-      if (/fetch|network/i.test(error.message))
-        message = "No connection. Check your internet and try again.";
+      if (/fetch|network/i.test(error.message)) message = 'No connection. Check your internet and try again.';
     }
     throw new Error(message);
   }
@@ -201,22 +180,19 @@ async function callFunction<T = unknown>(
 
 /** create_hold() raises plain-English messages for the cases a customer can hit; show those as they are. */
 function holdError(error: { message: string; code?: string }): string {
-  if (error.code && ["23514", "23505", "42501"].includes(error.code))
-    return error.message;
+  if (error.code && ['23514', '23505', '42501'].includes(error.code)) return error.message;
   return friendlyDbError(error.message);
 }
 
 function friendlyDbError(message: string): string {
-  if (/network|fetch/i.test(message))
-    return "No connection. Check your internet and try again.";
-  if (/row-level security|permission/i.test(message))
-    return "You don’t have permission to change that.";
-  return "Something went wrong saving that. Try again.";
+  if (/network|fetch/i.test(message)) return 'No connection. Check your internet and try again.';
+  if (/row-level security|permission/i.test(message)) return 'You don’t have permission to change that.';
+  return 'Something went wrong saving that. Try again.';
 }
 
 // ─────────────────────────────────────────────────────────── demo (on this phone only)
 
-export const DEMO_USER_ID = "00000000-0000-4000-a000-00000000de00";
+export const DEMO_USER_ID = '00000000-0000-4000-a000-00000000de00';
 
 type Store = { [K in TableName]?: Tables[K][] };
 export type Persist = {
@@ -240,7 +216,7 @@ const DEFAULTS: { [K in TableName]?: () => Partial<Tables[K]> } = {
     zip: null,
     lat: null,
     lng: null,
-    time_zone: "America/New_York",
+    time_zone: 'America/New_York',
     logo_url: null,
     amenities: [],
     health_safety: [],
@@ -251,6 +227,7 @@ const DEFAULTS: { [K in TableName]?: () => Partial<Tables[K]> } = {
     is_published: false,
     created_at: new Date().toISOString(),
   }),
+  clients: () => ({ profile_id: null, email: null, phone: null, notes: null, created_at: new Date().toISOString() }),
   services: () => ({
     category_id: null,
     description: null,
@@ -258,7 +235,7 @@ const DEFAULTS: { [K in TableName]?: () => Partial<Tables[K]> } = {
     sort_order: 0,
   }),
   professionals: () => ({
-    role: "hair stylist",
+    role: 'hair stylist',
     last_name: null,
     avatar_url: null,
     instagram: null,
@@ -270,8 +247,8 @@ const DEFAULTS: { [K in TableName]?: () => Partial<Tables[K]> } = {
   bookings: () => ({
     customer_id: null,
     client_id: null,
-    status: "pending_payment",
-    source: "online",
+    status: 'pending_payment',
+    source: 'online',
     subtotal_cents: 0,
     fee_cents: 0,
     tip_cents: 0,
@@ -282,7 +259,7 @@ const DEFAULTS: { [K in TableName]?: () => Partial<Tables[K]> } = {
     refund_cents: 0,
     created_at: new Date().toISOString(),
     tip_percent: 0,
-    payment_status: "none",
+    payment_status: 'none',
     stripe_setup_intent_id: null,
     stripe_payment_method_id: null,
     card_label: null,
@@ -295,37 +272,34 @@ const DEFAULTS: { [K in TableName]?: () => Partial<Tables[K]> } = {
 /** Child rows deleted along with a parent (the migration's `on delete cascade`). */
 const CASCADE: { [K in TableName]?: { table: TableName; column: string }[] } = {
   businesses: [
-    { table: "business_photos", column: "business_id" },
-    { table: "business_hours", column: "business_id" },
-    { table: "services", column: "business_id" },
-    { table: "professionals", column: "business_id" },
-    { table: "public_reviews", column: "business_id" },
-    { table: "favorites", column: "business_id" },
-    { table: "bookings", column: "business_id" },
+    { table: 'business_photos', column: 'business_id' },
+    { table: 'business_hours', column: 'business_id' },
+    { table: 'services', column: 'business_id' },
+    { table: 'professionals', column: 'business_id' },
+    { table: 'public_reviews', column: 'business_id' },
+    { table: 'favorites', column: 'business_id' },
+    { table: 'bookings', column: 'business_id' },
   ],
-  bookings: [{ table: "booking_services", column: "booking_id" }],
-  services: [{ table: "professional_services", column: "service_id" }],
+  bookings: [{ table: 'booking_services', column: 'booking_id' }],
+  services: [{ table: 'professional_services', column: 'service_id' }],
   professionals: [
-    { table: "professional_services", column: "professional_id" },
-    { table: "professional_photos", column: "professional_id" },
-    { table: "availability", column: "professional_id" },
-    { table: "breaks", column: "professional_id" },
-    { table: "time_off", column: "professional_id" },
-    { table: "favorites", column: "professional_id" },
+    { table: 'professional_services', column: 'professional_id' },
+    { table: 'professional_photos', column: 'professional_id' },
+    { table: 'availability', column: 'professional_id' },
+    { table: 'breaks', column: 'professional_id' },
+    { table: 'time_off', column: 'professional_id' },
+    { table: 'favorites', column: 'professional_id' },
   ],
 };
 
 export function uuid(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
 
-function matches(
-  row: Record<string, unknown>,
-  filter: Record<string, unknown> = {},
-): boolean {
+function matches(row: Record<string, unknown>, filter: Record<string, unknown> = {}): boolean {
   return Object.entries(filter).every(([col, val]) => {
     if (val === undefined) return true;
     if (val === null) return row[col] === null || row[col] === undefined;
@@ -340,31 +314,23 @@ export function createDemoDb(persist: Persist): Db {
     if (store) return store;
     let saved: Store = {};
     try {
-      saved = JSON.parse((await persist.load()) ?? "{}") as Store;
+      saved = JSON.parse((await persist.load()) ?? '{}') as Store;
     } catch {
       saved = {};
     }
-    if (!saved.categories?.length)
-      saved.categories = CATEGORIES.map((c) => ({ id: `cat-${c.slug}`, ...c }));
+    if (!saved.categories?.length) saved.categories = CATEGORIES.map((c) => ({ id: `cat-${c.slug}`, ...c }));
     addDemoSalons(saved); // the 3 sample salons customers can browse
     store = saved;
     return store;
   };
   const save = async () => persist.save(JSON.stringify(store));
   // Each table is an array of plain objects; the generic Tables map keeps callers typed.
-  const rowsOf = (s: Store, t: TableName) =>
-    (s[t] ??= []) as unknown as Record<string, unknown>[];
+  const rowsOf = (s: Store, t: TableName) => (s[t] ??= []) as unknown as Record<string, unknown>[];
 
-  const removeRows = (
-    s: Store,
-    table: TableName,
-    filter: Record<string, unknown>,
-  ) => {
+  const removeRows = (s: Store, table: TableName, filter: Record<string, unknown>) => {
     const rows = rowsOf(s, table);
     const gone = rows.filter((r) => matches(r, filter));
-    (s as Record<string, unknown>)[table] = rows.filter(
-      (r) => !matches(r, filter),
-    );
+    (s as Record<string, unknown>)[table] = rows.filter((r) => !matches(r, filter));
     for (const child of CASCADE[table] ?? []) {
       const ids = gone.map((r) => r.id).filter(Boolean);
       if (ids.length) removeRows(s, child.table, { [child.column]: ids });
@@ -377,23 +343,15 @@ export function createDemoDb(persist: Persist): Db {
       return DEMO_USER_ID;
     },
     async select(table, filter, orderBy) {
-      const rows = rowsOf(await load(), table).filter((r) =>
-        matches(r, filter),
-      );
-      const sorted = orderBy
-        ? [...rows].sort((a, b) =>
-            (a[orderBy] as number) > (b[orderBy] as number) ? 1 : -1,
-          )
-        : rows;
+      const rows = rowsOf(await load(), table).filter((r) => matches(r, filter));
+      const sorted = orderBy ? [...rows].sort((a, b) => ((a[orderBy] as number) > (b[orderBy] as number) ? 1 : -1)) : rows;
       return structuredCloneSafe(sorted) as never;
     },
     async insert(table, rows) {
       const s = await load();
       const withDefaults = rows.map((r) => ({
         ...(DEFAULTS[table]?.() ?? {}),
-        ...(table === "professional_services" || table === "booking_services"
-          ? {}
-          : { id: uuid() }),
+        ...(table === 'professional_services' || table === 'booking_services' ? {} : { id: uuid() }),
         ...r,
       }));
       rowsOf(s, table).push(...(withDefaults as Record<string, unknown>[]));
@@ -428,23 +386,22 @@ export function createDemoDb(persist: Persist): Db {
     async releaseHold(bookingId) {
       const now = new Date().toISOString();
       await api.update(
-        "bookings",
-        { id: bookingId, customer_id: DEMO_USER_ID, status: "pending_payment" },
-        { status: "cancelled", cancelled_at: now, cancelled_by: DEMO_USER_ID },
+        'bookings',
+        { id: bookingId, customer_id: DEMO_USER_ID, status: 'pending_payment' },
+        { status: 'cancelled', cancelled_at: now, cancelled_by: DEMO_USER_ID },
       );
     },
     // Demo mode has no Stripe: "saving a card" is pretend and nothing is ever charged.
     async startCardSetup(bookingId, tipPercent) {
-      if (!isTipChoice(tipPercent)) throw new Error("Pick a tip.");
-      const [b] = await api.select("bookings", {
+      if (!isTipChoice(tipPercent)) throw new Error('Pick a tip.');
+      const [b] = await api.select('bookings', {
         id: bookingId,
         customer_id: DEMO_USER_ID,
       });
-      if (!b || !isLive(b) || b.status !== "pending_payment")
-        throw new Error("Your hold ran out. Pick the time again.");
+      if (!b || !isLive(b) || b.status !== 'pending_payment') throw new Error('Your hold ran out. Pick the time again.');
       const t = bookingTotals(b.subtotal_cents, tipPercent);
       await api.update(
-        "bookings",
+        'bookings',
         { id: bookingId },
         {
           tip_percent: tipPercent,
@@ -456,91 +413,78 @@ export function createDemoDb(persist: Persist): Db {
       return { demo: true };
     },
     async confirmBooking(bookingId) {
-      const [b] = await api.select("bookings", {
+      const [b] = await api.select('bookings', {
         id: bookingId,
         customer_id: DEMO_USER_ID,
       });
-      if (!b || !isLive(b))
-        throw new Error("Your hold ran out. Pick the time again.");
+      if (!b || !isLive(b)) throw new Error('Your hold ran out. Pick the time again.');
+      // Like the database trigger: booking online makes you a client of that salon.
+      const [existing] = await api.select('clients', { business_id: b.business_id, profile_id: DEMO_USER_ID });
+      const client =
+        existing ?? (await api.insert('clients', [{ business_id: b.business_id, profile_id: DEMO_USER_ID, name: 'You (demo)' }]))[0]!;
       await api.update(
-        "bookings",
+        'bookings',
         { id: bookingId },
-        {
-          status: "confirmed",
-          payment_status: "card_saved",
-          card_label: "Visa ending 4242 (demo)",
-        },
+        { status: 'confirmed', payment_status: 'card_saved', card_label: 'Visa ending 4242 (demo)', client_id: client.id },
       );
     },
     async cancelBooking(bookingId) {
-      const [b] = await api.select("bookings", { id: bookingId });
-      if (!b) throw new Error("Booking not found.");
-      if (b.status === "cancelled") return { charged_cents: b.charge_cents };
-      if (new Date(b.starts_at).getTime() <= Date.now())
-        throw new Error("This appointment has already started.");
-      const by = b.customer_id === DEMO_USER_ID ? "customer" : "salon";
-      const quote =
-        b.status === "pending_payment"
-          ? { charge: 0 }
-          : cancellationQuote(b, new Date(), by);
+      const [b] = await api.select('bookings', { id: bookingId });
+      if (!b) throw new Error('Booking not found.');
+      if (b.status === 'cancelled') return { charged_cents: b.charge_cents };
+      if (new Date(b.starts_at).getTime() <= Date.now()) throw new Error('This appointment has already started.');
+      const by = b.customer_id === DEMO_USER_ID ? 'customer' : 'salon';
+      const quote = b.status === 'pending_payment' ? { charge: 0 } : cancellationQuote(b, new Date(), by);
       await api.update(
-        "bookings",
+        'bookings',
         { id: bookingId },
         {
-          status: "cancelled",
+          status: 'cancelled',
           cancelled_at: new Date().toISOString(),
           cancelled_by: DEMO_USER_ID,
           charge_cents: quote.charge,
-          payment_status:
-            b.payment_status === "card_saved"
-              ? quote.charge > 0
-                ? "charged"
-                : "not_charged"
-              : b.payment_status,
+          payment_status: b.payment_status === 'card_saved' ? (quote.charge > 0 ? 'charged' : 'not_charged') : b.payment_status,
         },
       );
       return { charged_cents: quote.charge };
     },
-    payouts: (async (businessId: string, action: "start" | "status") => {
-      if (action === "start") {
-        await api.update(
-          "businesses",
-          { id: businessId },
-          { stripe_account_id: "acct_demo", payouts_enabled: true },
-        );
+    payouts: (async (businessId: string, action: 'start' | 'status') => {
+      if (action === 'start') {
+        await api.update('businesses', { id: businessId }, { stripe_account_id: 'acct_demo', payouts_enabled: true });
       }
-      const [b] = await api.select("businesses", { id: businessId });
+      const [b] = await api.select('businesses', { id: businessId });
       return {
         started: !!b?.stripe_account_id,
         payouts_enabled: !!b?.payouts_enabled,
-        schedule: "daily",
+        schedule: 'daily',
       };
-    }) as Db["payouts"],
+    }) as Db['payouts'],
+    async addWalkIn(req) {
+      return demoAddWalkIn(api, req);
+    },
+    async markBooking(bookingId, status) {
+      const [b] = await api.select('bookings', { id: bookingId });
+      if (!b) throw new Error('Booking not found.');
+      if (!['confirmed', 'completed', 'no_show'].includes(b.status) || ['charging', 'charged'].includes(b.payment_status))
+        throw new Error('This booking can’t be changed any more.');
+      if (new Date(b.starts_at).getTime() > Date.now()) throw new Error('You can mark it once the appointment has started.');
+      await api.update('bookings', { id: bookingId }, { status });
+    },
   };
   return api;
 }
 
-const overlaps = (
-  a: { starts_at: string; ends_at: string },
-  from: string,
-  to: string,
-) =>
-  new Date(a.starts_at).getTime() < new Date(to).getTime() &&
-  new Date(a.ends_at).getTime() > new Date(from).getTime();
+const overlaps = (a: { starts_at: string; ends_at: string }, from: string, to: string) =>
+  new Date(a.starts_at).getTime() < new Date(to).getTime() && new Date(a.ends_at).getTime() > new Date(from).getTime();
 
 /** Same answer as busy_times() in the database, from the data on this phone. */
-async function demoBusyTimes(
-  db: Db,
-  businessId: string,
-  from: string,
-  to: string,
-): Promise<BusyTime[]> {
-  const pros = await db.select("professionals", { business_id: businessId });
+async function demoBusyTimes(db: Db, businessId: string, from: string, to: string): Promise<BusyTime[]> {
+  const pros = await db.select('professionals', { business_id: businessId });
   const proIds = pros.map((p) => p.id);
   if (!proIds.length) return [];
   const [bookings, timeOff] = await Promise.all([
-    db.select("bookings", { business_id: businessId }),
-    db.select("time_off", { professional_id: proIds }),
+    db.select('bookings', { business_id: businessId }),
+    db.select('time_off', { professional_id: proIds }),
   ]);
   return [
     ...bookings
@@ -549,7 +493,7 @@ async function demoBusyTimes(
         professional_id: b.professional_id,
         starts_at: b.starts_at,
         ends_at: b.ends_at,
-        kind: "booking" as const,
+        kind: 'booking' as const,
       })),
     ...timeOff
       .filter((t) => overlaps(t, from, to))
@@ -557,46 +501,42 @@ async function demoBusyTimes(
         professional_id: t.professional_id,
         starts_at: t.starts_at,
         ends_at: t.ends_at,
-        kind: "time_off" as const,
+        kind: 'time_off' as const,
       })),
   ];
 }
 
 /** Demo version of create_hold(): the same checks, using the same slot calculator the screen uses. */
 async function demoCreateHold(db: Db, req: HoldRequest): Promise<string> {
-  const [business] = await db.select("businesses", { id: req.business_id });
-  if (!business) throw new Error("This salon isn’t taking bookings right now.");
+  const [business] = await db.select('businesses', { id: req.business_id });
+  if (!business) throw new Error('This salon isn’t taking bookings right now.');
   const services = (
-    await db.select("services", {
+    await db.select('services', {
       id: req.service_ids,
       business_id: req.business_id,
     })
   ).filter((s) => s.is_visible);
-  if (
-    !req.service_ids.length ||
-    services.length !== new Set(req.service_ids).size
-  )
-    throw new Error("One of those services isn’t available any more.");
-  const links = await db.select("professional_services", {
+  if (!req.service_ids.length || services.length !== new Set(req.service_ids).size)
+    throw new Error('One of those services isn’t available any more.');
+  const links = await db.select('professional_services', {
     professional_id: req.professional_id,
     service_id: req.service_ids,
   });
-  if (links.length !== services.length)
-    throw new Error("That professional doesn’t offer all of those services.");
+  if (links.length !== services.length) throw new Error('That professional doesn’t offer all of those services.');
 
   const minutes = services.reduce((sum, s) => sum + s.duration_min, 0);
   const date = zonedClock(new Date(req.starts_at), business.time_zone).date;
   const [hours, availability, breaks] = await Promise.all([
-    db.select("business_hours", { business_id: req.business_id }),
-    db.select("availability", { professional_id: req.professional_id }),
-    db.select("breaks", { professional_id: req.professional_id }),
+    db.select('business_hours', { business_id: req.business_id }),
+    db.select('availability', { professional_id: req.professional_id }),
+    db.select('breaks', { professional_id: req.professional_id }),
   ]);
   // Your own hold doesn't count against you: holding a new time replaces it.
   await db.update(
-    "bookings",
-    { customer_id: DEMO_USER_ID, status: "pending_payment" },
+    'bookings',
+    { customer_id: DEMO_USER_ID, status: 'pending_payment' },
     {
-      status: "cancelled",
+      status: 'cancelled',
       cancelled_at: new Date().toISOString(),
       cancelled_by: DEMO_USER_ID,
     },
@@ -619,35 +559,69 @@ async function demoCreateHold(db: Db, req: HoldRequest): Promise<string> {
         id: req.professional_id,
         availability,
         breaks,
-        timeOff: mine.filter((b) => b.kind === "time_off"),
-        bookings: mine.filter((b) => b.kind === "booking"),
+        timeOff: mine.filter((b) => b.kind === 'time_off'),
+        bookings: mine.filter((b) => b.kind === 'booking'),
       },
     ],
     proId: req.professional_id,
   });
-  const slot = slots.find(
-    (s) => new Date(s.start).getTime() === new Date(req.starts_at).getTime(),
-  );
-  if (!slot) throw new Error("That time isn’t available. Pick another.");
-  if (slot.booked)
-    throw new Error("Someone just booked that time. Pick another.");
+  const slot = slots.find((s) => new Date(s.start).getTime() === new Date(req.starts_at).getTime());
+  if (!slot) throw new Error('That time isn’t available. Pick another.');
+  if (slot.booked) throw new Error('Someone just booked that time. Pick another.');
 
   const price = services.reduce((sum, s) => sum + s.price_cents, 0);
-  const [booking] = await db.insert("bookings", [
+  const [booking] = await db.insert('bookings', [
     {
       business_id: req.business_id,
       professional_id: req.professional_id,
       customer_id: DEMO_USER_ID,
       starts_at: req.starts_at,
-      ends_at: new Date(
-        new Date(req.starts_at).getTime() + minutes * 60_000,
-      ).toISOString(),
+      ends_at: new Date(new Date(req.starts_at).getTime() + minutes * 60_000).toISOString(),
       subtotal_cents: price,
       total_cents: price,
     },
   ]);
   await db.insert(
-    "booking_services",
+    'booking_services',
+    services.map((s) => ({
+      booking_id: booking!.id,
+      service_id: s.id,
+      professional_id: req.professional_id,
+      price_cents: s.price_cents,
+      duration_min: s.duration_min,
+    })),
+  );
+  return booking!.id;
+}
+
+/** Demo version of add_walk_in(): menu prices and lengths, and no overlapping appointments. */
+async function demoAddWalkIn(db: Db, req: WalkInRequest): Promise<string> {
+  const [pro] = await db.select('professionals', { id: req.professional_id, business_id: req.business_id });
+  if (!pro || !pro.is_active) throw new Error('Pick someone from your team.');
+  const services = await db.select('services', { id: req.service_ids, business_id: req.business_id });
+  if (!req.service_ids.length || services.length !== new Set(req.service_ids).size) throw new Error('Pick a service from your menu.');
+  const minutes = services.reduce((s, x) => s + x.duration_min, 0);
+  const price = services.reduce((s, x) => s + x.price_cents, 0);
+  const start = new Date(req.starts_at).getTime();
+  const end = start + minutes * 60_000;
+  const theirs = await db.select('bookings', { professional_id: req.professional_id });
+  if (theirs.some((b) => isLive(b) && new Date(b.starts_at).getTime() < end && new Date(b.ends_at).getTime() > start))
+    throw new Error('That time overlaps another appointment.');
+  const [booking] = await db.insert('bookings', [
+    {
+      business_id: req.business_id,
+      professional_id: req.professional_id,
+      client_id: req.client_id,
+      starts_at: new Date(start).toISOString(),
+      ends_at: new Date(end).toISOString(),
+      status: 'confirmed',
+      source: 'walk_in',
+      subtotal_cents: price,
+      total_cents: price,
+    },
+  ]);
+  await db.insert(
+    'booking_services',
     services.map((s) => ({
       booking_id: booking!.id,
       service_id: s.id,
@@ -663,7 +637,7 @@ function structuredCloneSafe<T>(v: T): T {
   return JSON.parse(JSON.stringify(v)) as T;
 }
 
-const DEMO_KEY = "hairday.demo-data";
+const DEMO_KEY = 'hairday.demo-data';
 
 let instance: Db | null = null;
 

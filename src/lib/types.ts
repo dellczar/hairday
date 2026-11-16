@@ -168,6 +168,28 @@ export type Tables = {
   favorites: Favorite;
   bookings: Booking;
   booking_services: BookingService;
+  clients: Client;
+};
+
+/** A salon's client (Clients.html). Online customers are added automatically when they book. */
+export type Client = {
+  id: string;
+  business_id: string;
+  /** Set by the server when the client has a Hairday account; owners can't change it. */
+  profile_id: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type WalkInRequest = {
+  business_id: string;
+  professional_id: string;
+  client_id: string | null;
+  service_ids: string[];
+  starts_at: string;
 };
 
 export type TableName = keyof Tables;
