@@ -71,6 +71,22 @@
         {
           "contactsPermission": "Hairday imports the contacts you choose into your client list."
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Hairday adds your appointment to your calendar.",
+          "writeOnlyCalendarPermission": "Hairday adds your appointment to your calendar.",
+          "writeOnlyAccess": true,
+          "remindersPermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#171826"
+        }
       ]
     ],
     "experiments": {

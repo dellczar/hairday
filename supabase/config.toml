@@ -445,3 +445,6 @@ verify_jwt = false   # only redirects back into the app
 
 [functions.charge-due]
 verify_jwt = false   # x-cron-secret header (CRON_SECRET)
+
+[functions.send-notifications]
+verify_jwt = false   # x-cron-secret header (CRON_SECRET)

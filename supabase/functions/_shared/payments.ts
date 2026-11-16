@@ -76,3 +76,11 @@ export function cardLabel(brand: string | null | undefined, last4: string | null
   const name = (brand && names[brand]) || 'Card';
   return last4 ? `${name} ending ${last4}` : name;
 }
+
+/**
+ * A confirmed booking can be moved until the free-cancel window closes (24 hours before), so moving
+ * it can't be used to avoid the late-cancel charge. Same rule as reschedule_booking() in the database.
+ */
+export function canReschedule(b: { starts_at: string }, now: Date): boolean {
+  return new Date(b.starts_at).getTime() - now.getTime() >= FREE_CANCEL_HOURS * 3_600_000;
+}

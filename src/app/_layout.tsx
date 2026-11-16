@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { useNotificationTaps } from '@/hooks/useNotificationTaps';
 import { SessionProvider } from '@/hooks/useSession';
 import { APPLE_MERCHANT_ID, STRIPE_PUBLISHABLE_KEY } from '@/lib/stripe';
 import { colors } from '@/theme';
@@ -37,6 +38,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} merchantIdentifier={APPLE_MERCHANT_ID} urlScheme="hairday">
             <SessionProvider>
+              <NotificationTaps />
               <StatusBar style="dark" />
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
             </SessionProvider>
@@ -45,4 +47,9 @@ export default function RootLayout() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+function NotificationTaps() {
+  useNotificationTaps();
+  return null;
 }

@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
+import { forgetPushToken } from '@/lib/push';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 
 type SessionState = {
@@ -55,12 +56,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     setGuest(false);
     setMode('customer');
-    if (isSupabaseConfigured) await getSupabase().auth.signOut();
+    if (isSupabaseConfigured) {
+      await forgetPushToken();
+      await getSupabase().auth.signOut();
+    }
     setSession(null);
   };
 
   return (
-    <SessionContext.Provider value={{ session, loading: loading || !modeLoaded, guest, setGuest, mode, setMode, signOut }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ session, loading: loading || !modeLoaded, guest, setGuest, mode, setMode, signOut }}>
+      {children}
+    </SessionContext.Provider>
   );
 }
 

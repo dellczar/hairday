@@ -1,12 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
-import { ChevronRight, CircleHelp, Heart } from 'lucide-react-native';
+import { Bell, ChevronRight, CircleHelp, Heart } from 'lucide-react-native';
+import { useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Avatar, Button, ListGroup, ListRow } from '@/components';
+import { AppText, Avatar, Button, ListGroup, ListRow, ModalSheet, Toggle } from '@/components';
 import { useFavoriteDetails } from '@/hooks/useDiscovery';
+import { useNotifySettings, useSaveNotifySettings } from '@/hooks/useNotifySettings';
 import { useMyBusiness } from '@/hooks/useOwner';
 import { roleLabel } from '@/lib/catalog';
 import { useSession } from '@/hooks/useSession';
@@ -15,7 +17,7 @@ import { links } from '@/lib/links';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, space } from '@/theme';
 
-// Profile (Profile.html). Payment methods, reminders and Delete account arrive in Phases 5, 7 and 8.
+// Profile (Profile.html). Delete account arrives in Phase 8.
 export default function Profile() {
   const insets = useSafeAreaInsets();
   const { session, signOut, setMode } = useSession();
@@ -30,6 +32,18 @@ export default function Profile() {
   const favorites = useFavoriteDetails();
   const favSalons = favorites.data?.salons ?? [];
   const favPros = favorites.data?.pros ?? [];
+  const notify = useNotifySettings();
+  const [remindersOpen, setRemindersOpen] = useState(false);
+  const n = notify.data;
+  const remindersLabel = !n
+    ? ''
+    : n.notify_push && n.notify_email
+      ? 'Push and email'
+      : n.notify_push
+        ? 'Push only'
+        : n.notify_email
+          ? 'Email only'
+          : 'Off';
 
   const openBusiness = () => {
     if (!canOwn) return router.push({ pathname: '/(auth)/email', params: { intent: 'business' } });
@@ -66,7 +80,9 @@ export default function Profile() {
                   key={b.id}
                   label={b.name}
                   sublabel={b.type ?? 'Salon'}
-                  icon={photo ? <Image source={{ uri: photo }} style={styles.favPhoto} contentFit="cover" /> : <View style={styles.favPhoto} />}
+                  icon={
+                    photo ? <Image source={{ uri: photo }} style={styles.favPhoto} contentFit="cover" /> : <View style={styles.favPhoto} />
+                  }
                   onPress={() => router.push({ pathname: '/salon/[id]', params: { id: b.id } })}
                 />
               ))}
@@ -95,6 +111,14 @@ export default function Profile() {
       ) : null}
 
       <ListGroup>
+        {canOwn ? (
+          <ListRow
+            label="Reminders"
+            sublabel={remindersLabel}
+            icon={<Bell size={20} strokeWidth={1.8} color={colors.ink} />}
+            onPress={() => setRemindersOpen(true)}
+          />
+        ) : null}
         <ListRow
           label="Help & support"
           icon={<CircleHelp size={20} strokeWidth={1.8} color={colors.ink} />}
@@ -104,7 +128,9 @@ export default function Profile() {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={hasBusiness ? `Switch to Business, ${business.data?.name}` : 'Own a salon? List your business and take bookings free.'}
+        accessibilityLabel={
+          hasBusiness ? `Switch to Business, ${business.data?.name}` : 'Own a salon? List your business and take bookings free.'
+        }
         onPress={openBusiness}
         style={({ pressed }) => [styles.ownCard, pressed && { opacity: 0.9 }]}>
         <View style={styles.flex1}>
@@ -166,9 +192,38 @@ export default function Profile() {
       ) : null}
 
       <AppText variant="caption" color="muted" style={styles.center}>
-        Payment methods, reminders and account deletion come in later phases.
+        Account deletion comes with the store release (Phase 8).
       </AppText>
+      <RemindersSheet visible={remindersOpen} onClose={() => setRemindersOpen(false)} />
     </ScrollView>
+  );
+}
+
+/** Profile → Reminders: booking confirmations, reminders and review requests, by push and email. */
+function RemindersSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const q = useNotifySettings();
+  const save = useSaveNotifySettings();
+  const n = q.data;
+  return (
+    <ModalSheet visible={visible} onClose={onClose} title="Reminders">
+      <AppText color="inkSoft" style={styles.sheetText}>
+        Booking confirmations, reminders 24 hours and 2 hours before, and changes to your appointments.
+      </AppText>
+      <ListGroup>
+        <ListRow
+          label="Push notifications"
+          sublabel="On this phone"
+          right={
+            <Toggle accessibilityLabel="Push notifications" value={!!n?.notify_push} onChange={(v) => save.mutate({ notify_push: v })} />
+          }
+        />
+        <ListRow
+          label="Email"
+          sublabel="To the address you sign in with"
+          right={<Toggle accessibilityLabel="Email" value={!!n?.notify_email} onChange={(v) => save.mutate({ notify_email: v })} />}
+        />
+      </ListGroup>
+    </ModalSheet>
   );
 }
 
@@ -187,4 +242,5 @@ const styles = StyleSheet.create({
   favPhoto: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.placeholder },
   favEmpty: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.tint, borderRadius: 16, padding: 14 },
   flexText: { flex: 1 },
+  sheetText: { fontSize: 15, lineHeight: 22 },
 });
