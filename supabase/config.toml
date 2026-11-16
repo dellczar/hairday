@@ -236,8 +236,8 @@ secure_password_change = false
 max_frequency = "1m0s"
 # Number of characters used in the email OTP.
 otp_length = 6
-# Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# Number of seconds before the email OTP expires. 10 minutes, as the Verify screen says (SPEC §10).
+otp_expiry = 600
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -249,16 +249,20 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# The hosted project sends through Resend (smtp.resend.com, user "resend", sender no-reply@hairday.app).
+# Its password is the Resend key, entered only in the Supabase dashboard (Authentication → Emails →
+# SMTP Settings), never in this file. DON'T run `supabase config push` without adding an
+# [auth.email.smtp] section with pass = "env(RESEND_API_KEY)" first, or it could switch SMTP off.
+
 # Hairday signs people in with a 6-digit code typed into the app (src/lib/auth.ts), not a link.
-# Supabase's free plan only allows changing these emails once a custom email sender (SMTP) is set up,
-# so these stay off until then (docs/DECISIONS.md).
-# [auth.email.template.magic_link]
-# subject = "Your Hairday code"
-# content_path = "./supabase/templates/sign_in_code.html"
-#
-# [auth.email.template.confirmation]
-# subject = "Your Hairday code"
-# content_path = "./supabase/templates/sign_in_code.html"
+# Both emails are set to this template on the hosted project (dashboard, 2026-11-18).
+[auth.email.template.magic_link]
+subject = "Your Hairday code"
+content_path = "./supabase/templates/sign_in_code.html"
+
+[auth.email.template.confirmation]
+subject = "Your Hairday code"
+content_path = "./supabase/templates/sign_in_code.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

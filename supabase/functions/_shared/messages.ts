@@ -141,6 +141,6 @@ export function emailHtml(m: Message): string {
 <h1 style="margin:0 0 12px;font-family:Georgia,serif;font-weight:400;font-size:28px;line-height:1.15">${esc(m.title)}</h1>
 <p style="margin:0;font-size:15px;line-height:1.5;color:#2B2E40">${esc(m.body)}</p>
 </div>
-<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#5D6070">Open the Hairday app to see your ${m.audience === 'owner' ? 'calendar' : 'bookings'}. You can turn these emails off in Profile → Notifications.</p>
+<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#5D6070">Open the Hairday app to see your ${m.audience === 'owner' ? 'calendar' : 'bookings'}. You can turn these emails off in Profile → Reminders.</p>
 </div></body></html>`;
 }
