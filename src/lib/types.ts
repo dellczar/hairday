@@ -122,7 +122,27 @@ export type Booking = {
   cancelled_by: string | null;
   refund_cents: number;
   created_at: string;
+  // Phase 5 — payments (charged after the appointment; written only by server functions)
+  tip_percent: number;
+  payment_status: PaymentStatus;
+  stripe_setup_intent_id: string | null;
+  stripe_payment_method_id: string | null;
+  /** "Visa ending 4242" */
+  card_label: string | null;
+  /** What was (or will be) charged: the visit, or a late-cancel / no-show share. */
+  charge_cents: number;
+  charged_at: string | null;
+  payment_error: string | null;
 };
+
+export type PaymentStatus = 'none' | 'card_saved' | 'charging' | 'charged' | 'failed' | 'not_charged';
+
+/** What the app needs to show Stripe's PaymentSheet for saving a card. Demo mode skips Stripe. */
+export type CardSetup =
+  | { demo: true }
+  | { demo?: false; setupIntentClientSecret: string; ephemeralKey: string; customerId: string };
+
+export type PayoutsStatus = { started: boolean; payouts_enabled: boolean; needs_more?: boolean; schedule?: string | null };
 
 /** Services copied onto a booking at the moment it's made (prices can change later). */
 export type BookingService = { booking_id: string; service_id: string; professional_id: string; price_cents: number; duration_min: number };
