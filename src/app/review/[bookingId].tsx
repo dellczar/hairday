@@ -2,8 +2,8 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Camera, Star, X } from 'lucide-react-native';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Avatar, Button, Chip, EmptyState, Headline, IconButton, Input, Skeleton } from '@/components';
@@ -24,6 +24,7 @@ export default function LeaveReview() {
   const [body, setBody] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const scroll = useRef<ScrollViewInstance>(null);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(customer)/(tabs)/bookings'));
   const d = q.data;
@@ -72,9 +73,12 @@ export default function LeaveReview() {
   const date = new Date(d.booking.starts_at).toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric' });
 
   return (
-    <View style={styles.screen}>
+    // iOS moves the content above the keyboard itself (automaticallyAdjustKeyboardInsets); on Android the
+    // screen shrinks to the space above the keyboard and scrolls the text box into view when it's tapped.
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'android' ? 'height' : undefined}>
       {/* The button sits at the end of the content (Review.html), so the keyboard never squeezes the form. */}
       <ScrollView
+        ref={scroll}
         style={styles.screen}
         contentContainerStyle={[styles.pad, styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}
         keyboardShouldPersistTaps="handled"
@@ -129,6 +133,7 @@ export default function LeaveReview() {
 
         <Input
           label="Tell others about it (optional)"
+          onFocus={() => Platform.OS === 'android' && setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 300)}
           value={body}
           onChangeText={(t) => setBody(t.slice(0, MAX_REVIEW_LENGTH))}
           placeholder="What did you love?"
@@ -157,7 +162,7 @@ export default function LeaveReview() {
         <View style={styles.grow} />
         <Button title="Post review" onPress={onPost} loading={post.isPending || uploading} />
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

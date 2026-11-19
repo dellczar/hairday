@@ -96,3 +96,4 @@
 | 2026-11-18 | Email is live through Resend from hairday.app (verified; records added in GoDaddy on new names, so ImprovMX forwarding is unchanged). Booking emails come from bookings@hairday.app, sign-in codes from no-reply@hairday.app. The Resend key is only in Supabase (Edge Function secret + Auth SMTP), never in the repo | Owner decision; real customers can now get sign-in codes |
 | 2026-11-18 | Sign-in codes now last 10 minutes (were 1 hour), matching the Verify screen and SPEC §10; the "Your Hairday code" email says so | SPEC §10 "code expires in 10 min" |
 | 2026-11-18 | Supabase "Confirm email" turned off | Owner decision. Sign-in is by emailed code only, which already proves the address; with it on, brand-new customers got a link-only email with no code |
+| 2026-11-19 | Leave a review on Android: the screen shrinks above the keyboard and scrolls the comment box into view | Found on the Android emulator: the keyboard covered the box |
