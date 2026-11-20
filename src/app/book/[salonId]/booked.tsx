@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   month: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 15,
     fontFamily: fonts.semibold,
     letterSpacing: 1.2,
   },

@@ -97,3 +97,4 @@
 | 2026-11-18 | Sign-in codes now last 10 minutes (were 1 hour), matching the Verify screen and SPEC §10; the "Your Hairday code" email says so | SPEC §10 "code expires in 10 min" |
 | 2026-11-18 | Supabase "Confirm email" turned off | Owner decision. Sign-in is by emailed code only, which already proves the address; with it on, brand-new customers got a link-only email with no code |
 | 2026-11-19 | Leave a review on Android: the screen shrinks above the keyboard and scrolls the comment box into view | Found on the Android emulator: the keyboard covered the box |
+| 2026-11-19 | Smallest text raised from 10–11 pt to 12 pt (owner Calendar, Today "New" tag, booking sheet, month on date badges); Calendar "Today" button tap area raised to 44 pt | Owner asked after a design review: easier to read and tap. Small departure from the 11 px labels in the designs; no layout change |

@@ -170,6 +170,8 @@ export default function Calendar() {
           <Pressable
             onPress={() => setDate(today)}
             accessibilityRole="button"
+            accessibilityLabel="Go to today"
+            hitSlop={{ top: 4, bottom: 4 }}
             style={({ pressed }) => [styles.today, pressed && styles.pressed]}>
             <AppText style={styles.todayText}>Today</AppText>
           </Pressable>
@@ -283,24 +285,24 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dayOn: { backgroundColor: colors.ink },
-  dayLetter: { fontSize: 11, lineHeight: 14 },
+  dayLetter: { fontSize: 12, lineHeight: 15 },
   dayNum: { fontFamily: fonts.semibold, fontSize: 17, lineHeight: 22 },
   heads: { flexDirection: 'row', gap: 6, alignItems: 'center', marginBottom: 10 },
   gutter: { width: 36 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   flex1: { flex: 1 },
   ini: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  iniText: { fontSize: 10, fontFamily: fonts.semibold },
+  iniText: { fontSize: 12, fontFamily: fonts.semibold },
   headName: { flex: 1, fontFamily: fonts.semibold, fontSize: 13 },
   hourLine: { position: 'absolute', left: 0, right: 0, height: HOUR, borderTopWidth: 1, borderTopColor: colors.cardLine },
-  hourText: { fontSize: 11, lineHeight: 14, marginTop: -7, alignSelf: 'flex-start', backgroundColor: colors.bg, paddingRight: 4 },
+  hourText: { fontSize: 12, lineHeight: 15, marginTop: -7, alignSelf: 'flex-start', backgroundColor: colors.bg, paddingRight: 4 },
   columns: { position: 'absolute', left: 42, right: 0, top: 0, bottom: 0, flexDirection: 'row', gap: 6 },
   column: { position: 'relative' },
   block: { position: 'absolute', left: 0, right: 0, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3, overflow: 'hidden' },
   open: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.placeholder, alignItems: 'center', justifyContent: 'center' },
-  openText: { fontSize: 11 },
-  blockText: { fontSize: 11, lineHeight: 14, color: colors.ink },
-  bold: { fontFamily: fonts.semibold, fontSize: 11, color: colors.ink },
+  openText: { fontSize: 12 },
+  blockText: { fontSize: 12, lineHeight: 15, color: colors.ink },
+  bold: { fontFamily: fonts.semibold, fontSize: 12, color: colors.ink },
   dim: { opacity: 0.55 },
   fab: {
     position: 'absolute',

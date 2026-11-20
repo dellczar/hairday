@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   pair: { flexDirection: 'row', gap: space.s },
   flex1: { flex: 1 },
   badges: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: -space.s },
-  new: { fontFamily: fonts.semibold, fontSize: 11, letterSpacing: 0.8 },
+  new: { fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.8 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.bigCard,
