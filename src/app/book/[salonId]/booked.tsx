@@ -1,18 +1,18 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, Navigation } from 'lucide-react-native';
+import { useEffect } from 'react';
+import { CalendarPlus, Check, Navigation } from 'lucide-react-native';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Button, Headline, Skeleton } from '@/components';
 import { useHeldBooking } from '@/hooks/useBooking';
+import { addToCalendar, salonAddress } from '@/lib/calendar';
 import { formatDuration, formatTime, zonedClock } from '@/lib/hours';
+import { askForPushAfterBooking } from '@/lib/push';
 import { directionsUrl } from '@/lib/links';
 import { colors, fonts, radius, space } from '@/theme';
 
-/**
- * "You're booked." (Booked.html). Email confirmations, reminders and Add to calendar arrive with
- * notifications in Phase 7, so the text says what's true today: the card is saved, not charged.
- */
+/** "You're booked." (Booked.html): the visit, Add to calendar, Directions. */
 export default function Booked() {
   const { booking: bookingId } = useLocalSearchParams<{
     salonId: string;
@@ -20,6 +20,12 @@ export default function Booked() {
   }>();
   const insets = useSafeAreaInsets();
   const q = useHeldBooking(bookingId);
+
+  // SPEC §12: ask for notifications after the first booking, not at launch (the phone asks only once).
+  useEffect(() => {
+    const t = setTimeout(() => void askForPushAfterBooking(), 1200);
+    return () => clearTimeout(t);
+  }, []);
   const d = q.data;
 
   const tz = d?.business?.time_zone ?? 'America/New_York';
@@ -44,7 +50,7 @@ export default function Booked() {
           </View>
           <Headline text="You’re" accent="booked." style={styles.h1} />
           <AppText color="muted" style={styles.lead}>
-            Your card is saved and you won’t be charged until after your appointment.
+            Your card is saved and you won’t be charged until after your appointment. We’ll remind you the day before.
           </AppText>
         </View>
 
@@ -76,14 +82,31 @@ export default function Booked() {
               </View>
             </View>
             {d.business ? (
-              <Pressable
-                style={({ pressed }) => [styles.action, pressed && styles.pressed]}
-                accessibilityRole="link"
-                accessibilityLabel={`Directions to ${d.business.name}`}
-                onPress={() => Linking.openURL(directionsUrl(d.business!, Platform.OS === 'ios' ? 'ios' : 'android')).catch(() => {})}>
-                <Navigation size={18} strokeWidth={1.8} color={colors.ink} />
-                <AppText style={styles.actionText}>Directions</AppText>
-              </Pressable>
+              <View style={styles.actions}>
+                <Pressable
+                  style={({ pressed }) => [styles.action, styles.actionLine, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                  onPress={() =>
+                    addToCalendar({
+                      title: `${d.items.map((i) => i.name).join(', ')} at ${d.business!.name}`,
+                      start: d.booking.starts_at,
+                      end: d.booking.ends_at,
+                      location: salonAddress(d.business!),
+                      notes: `${d.pro ? `With ${d.pro.first_name}. ` : ''}Booked with Hairday.`,
+                    })
+                  }>
+                  <CalendarPlus size={18} strokeWidth={1.8} color={colors.ink} />
+                  <AppText style={styles.actionText}>Add to calendar</AppText>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+                  accessibilityRole="link"
+                  accessibilityLabel={`Directions to ${d.business.name}`}
+                  onPress={() => Linking.openURL(directionsUrl(d.business!, Platform.OS === 'ios' ? 'ios' : 'android')).catch(() => {})}>
+                  <Navigation size={18} strokeWidth={1.8} color={colors.ink} />
+                  <AppText style={styles.actionText}>Directions</AppText>
+                </Pressable>
+              </View>
             ) : null}
           </View>
         )}
@@ -149,10 +172,11 @@ const styles = StyleSheet.create({
   day: { fontFamily: fonts.display, fontSize: 28, lineHeight: 30 },
   flex1: { flex: 1, gap: 3 },
   when: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 22 },
+  actions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.lineSoft },
+  actionLine: { borderRightWidth: 1, borderRightColor: colors.lineSoft },
   action: {
+    flex: 1,
     minHeight: 52,
-    borderTopWidth: 1,
-    borderTopColor: colors.lineSoft,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

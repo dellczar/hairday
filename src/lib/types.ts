@@ -138,9 +138,7 @@ export type Booking = {
 export type PaymentStatus = 'none' | 'card_saved' | 'charging' | 'charged' | 'failed' | 'not_charged';
 
 /** What the app needs to show Stripe's PaymentSheet for saving a card. Demo mode skips Stripe. */
-export type CardSetup =
-  | { demo: true }
-  | { demo?: false; setupIntentClientSecret: string; ephemeralKey: string; customerId: string };
+export type CardSetup = { demo: true } | { demo?: false; setupIntentClientSecret: string; ephemeralKey: string; customerId: string };
 
 export type PayoutsStatus = { started: boolean; payouts_enabled: boolean; needs_more?: boolean; schedule?: string | null };
 
@@ -165,6 +163,8 @@ export type Tables = {
   breaks: Break;
   time_off: TimeOff;
   public_reviews: PublicReview;
+  reviews: Review;
+  profiles: Profile;
   favorites: Favorite;
   bookings: Booking;
   booking_services: BookingService;
@@ -183,6 +183,35 @@ export type Client = {
   notes: string | null;
   created_at: string;
 };
+
+/** The signed-in person's own profile row (each person reads only their own). */
+export type Profile = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  notify_push: boolean;
+  notify_email: boolean;
+  notify_sms: boolean;
+  created_at: string;
+};
+
+/** A customer's own review (the `reviews` table; others see it through public_reviews). */
+export type Review = {
+  id: string;
+  booking_id: string;
+  business_id: string;
+  professional_id: string | null;
+  customer_id: string;
+  rating: number;
+  tags: string[];
+  body: string | null;
+  photo_url: string | null;
+  created_at: string;
+};
+
+export type ReviewRequest = { booking_id: string; rating: number; tags: string[]; body: string | null; photo_url: string | null };
 
 export type WalkInRequest = {
   business_id: string;

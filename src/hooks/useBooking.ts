@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { ProSchedule } from '@/lib/availability';
 import { getDb } from '@/lib/db';
-import type { CardSetup, HoldRequest } from '@/lib/types';
+import type { CardSetup, HoldRequest, ReviewRequest } from '@/lib/types';
 
 /** Booking flow data (Pick a time → held time). Keys start with 'booking'. */
 const KEY = 'booking';
@@ -176,7 +176,7 @@ export function useMyBookings() {
       const bookings = (await db.select('bookings', { customer_id: me })).filter((b) => b.payment_status !== 'none');
       if (!bookings.length) return [];
       const ids = bookings.map((b) => b.id);
-      const [items, businesses, pros] = await Promise.all([
+      const [items, businesses, pros, reviews] = await Promise.all([
         db.select('booking_services', { booking_id: ids }),
         db.select('businesses', {
           id: [...new Set(bookings.map((b) => b.business_id))],
@@ -184,6 +184,7 @@ export function useMyBookings() {
         db.select('professionals', {
           id: [...new Set(bookings.map((b) => b.professional_id))],
         }),
+        db.select('reviews', { customer_id: me }),
       ]);
       const services = items.length
         ? await db.select('services', {
@@ -196,6 +197,8 @@ export function useMyBookings() {
           business: businesses.find((x) => x.id === b.business_id) ?? null,
           pro: pros.find((p) => p.id === b.professional_id) ?? null,
           services: items.filter((i) => i.booking_id === b.id).map((i) => services.find((s) => s.id === i.service_id)?.name ?? 'Service'),
+          serviceIds: items.filter((i) => i.booking_id === b.id).map((i) => i.service_id),
+          review: reviews.find((r) => r.booking_id === b.id) ?? null,
           minutes: items.filter((i) => i.booking_id === b.id).reduce((s, i) => s + i.duration_min, 0),
         }))
         .sort((a, b) => b.booking.starts_at.localeCompare(a.booking.starts_at));
@@ -208,5 +211,27 @@ export function useCancelBooking() {
   return useMutation({
     mutationFn: (bookingId: string) => getDb().cancelBooking(bookingId),
     onSettled: () => void qc.invalidateQueries({ queryKey: [KEY] }), // refresh in the background
+  });
+}
+
+/** My bookings → Reschedule → Pick a new time → "Move it here". */
+export function useRescheduleBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookingId, professionalId, startsAt }: { bookingId: string; professionalId: string; startsAt: string }) =>
+      getDb().rescheduleBooking(bookingId, professionalId, startsAt),
+    onSettled: () => void qc.invalidateQueries({ queryKey: [KEY] }), // refresh in the background
+  });
+}
+
+/** Leave a review → "Post review". Refreshes My bookings and the salon's reviews. */
+export function usePostReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: ReviewRequest) => getDb().postReview(req),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: [KEY] });
+      void qc.invalidateQueries(); // salon and professional pages show the new review
+    },
   });
 }

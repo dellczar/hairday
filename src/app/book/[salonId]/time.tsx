@@ -6,10 +6,11 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Avatar, BackButton, EmptyState, IconButton, Skeleton } from '@/components';
-import { schedulesFor, useBookingSetup, useBusyTimes, useCreateHold } from '@/hooks/useBooking';
+import { schedulesFor, useBookingSetup, useBusyTimes, useCreateHold, useHeldBooking, useRescheduleBooking } from '@/hooks/useBooking';
 import { useSalon } from '@/hooks/useDiscovery';
 import { useSession } from '@/hooks/useSession';
 import { getAvailableSlots, groupSlots, type Slot } from '@/lib/availability';
+import { sameStretch } from '@/lib/db';
 import { addDays, formatDuration, formatTime, zonedClock, zonedTimeToUtc } from '@/lib/hours';
 import { formatPrice } from '@/lib/money';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -18,7 +19,20 @@ import { colors, fonts, radius, space, touch } from '@/theme';
 const WEEKS_AHEAD = 8;
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS_LONG = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 /** 'YYYY-MM-DD' → its parts, without the phone's time zone getting involved. */
 function parts(date: string) {
@@ -26,14 +40,19 @@ function parts(date: string) {
   return { y, m, d, dow: new Date(Date.UTC(y, m - 1, d)).getUTCDay() };
 }
 
-/** Pick a time (Book.html): who, which day, which time → Continue holds it for 10 minutes. */
+/**
+ * Pick a time (Book.html): who, which day, which time → Continue holds it for 10 minutes.
+ * With `reschedule=<booking id>` it moves that booking instead (My bookings → Reschedule).
+ */
 export default function PickATime() {
-  const params = useLocalSearchParams<{ salonId: string; services?: string; pro?: string }>();
+  const params = useLocalSearchParams<{ salonId: string; services?: string; pro?: string; reschedule?: string }>();
   const salonId = params.salonId;
   const serviceIds = useMemo(() => (params.services ?? '').split(',').filter(Boolean), [params.services]);
   const insets = useSafeAreaInsets();
   const { session, signOut } = useSession();
 
+  const moving = useHeldBooking(params.reschedule).data?.booking ?? null;
+  const reschedule = useRescheduleBooking();
   const salon = useSalon(salonId);
   const setup = useBookingSetup(salonId, serviceIds);
   const business = salon.data?.listing.business;
@@ -59,12 +78,18 @@ export default function PickATime() {
 
   const services = setup.data?.services ?? [];
   const minutes = services.reduce((s, x) => s + x.duration_min, 0);
-  const price = services.reduce((s, x) => s + x.price_cents, 0);
+  // A moved booking keeps the price it was booked at.
+  const price = moving ? moving.subtotal_cents : services.reduce((s, x) => s + x.price_cents, 0);
+  const busyNow = hold.isPending || reschedule.isPending;
 
   // Times for every day of the visible week, so empty days can be dimmed.
   const slotsByDay = useMemo(() => {
     if (!setup.data || !busy.data) return null;
-    const schedules = schedulesFor(setup.data, busy.data);
+    // The booking being moved doesn't block itself.
+    const schedules = schedulesFor(
+      setup.data,
+      moving ? busy.data.filter((b) => !(b.kind === 'booking' && sameStretch(b, moving))) : busy.data,
+    );
     const out: Record<string, Slot[]> = {};
     for (const d of days)
       out[d] = getAvailableSlots({
@@ -78,7 +103,7 @@ export default function PickATime() {
       });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `days` is derived from weekStart
-  }, [setup.data, busy.data, weekStart, tz, minutes, proId]);
+  }, [setup.data, busy.data, weekStart, tz, minutes, proId, moving]);
 
   const open = (d: string) => (slotsByDay?.[d] ?? []).some((s) => !s.booked);
   // Default to the first day with a free time.
@@ -93,6 +118,24 @@ export default function PickATime() {
 
   const cont = async () => {
     if (!current?.proId || !business) return;
+    if (params.reschedule) {
+      if (!moving) return;
+      try {
+        await reschedule.mutateAsync({ bookingId: moving.id, professionalId: current.proId, startsAt: current.start });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        Alert.alert(
+          'Booking moved',
+          `You’re now booked for ${DOW[sel.dow]} ${MONTHS[sel.m - 1]} ${sel.d} at ${formatTime(current.minutes)}.`,
+        );
+        if (router.canGoBack()) router.back();
+        else router.replace('/(customer)/(tabs)/bookings');
+      } catch (e) {
+        setPicked(null);
+        void busy.refetch();
+        Alert.alert('Couldn’t move it', e instanceof Error ? e.message : 'Pick another time.');
+      }
+      return;
+    }
     if (isSupabaseConfigured && !session) {
       Alert.alert('Sign in to book', 'We’ll keep your services and time. It only takes a moment.', [
         { text: 'Not now', style: 'cancel' },
@@ -140,7 +183,7 @@ export default function PickATime() {
           <BackButton />
           <View style={styles.flex1}>
             <AppText style={styles.title} accessibilityRole="header">
-              Pick a time
+              {params.reschedule ? 'Pick a new time' : 'Pick a time'}
             </AppText>
             <AppText variant="caption" color="muted" numberOfLines={2}>
               {[business?.name, services.length ? `${services.map((s) => s.name).join(', ')}, ${formatDuration(minutes)}` : null]
@@ -331,13 +374,13 @@ export default function PickATime() {
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: !current, busy: hold.isPending }}
-          accessibilityHint="Holds this time for 10 minutes"
-          disabled={!current || hold.isPending}
+          accessibilityState={{ disabled: !current, busy: busyNow }}
+          accessibilityHint={params.reschedule ? 'Moves your booking to this time' : 'Holds this time for 10 minutes'}
+          disabled={!current || busyNow || (!!params.reschedule && !moving)}
           onPress={cont}
-          style={({ pressed }) => [styles.cta, (!current || hold.isPending) && styles.ctaOff, pressed && { opacity: 0.88 }]}>
+          style={({ pressed }) => [styles.cta, (!current || busyNow) && styles.ctaOff, pressed && { opacity: 0.88 }]}>
           <AppText variant="button" color="onGold">
-            {hold.isPending ? 'Holding…' : 'Continue'}
+            {params.reschedule ? (reschedule.isPending ? 'Moving…' : 'Move it here') : hold.isPending ? 'Holding…' : 'Continue'}
           </AppText>
         </Pressable>
       </View>

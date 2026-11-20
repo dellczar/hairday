@@ -538,6 +538,172 @@ end $$;
 reset role;
 rollback;
 
+\echo '— after booking: reschedule and reviews (Phase 7)'
+begin;
+create or replace function tests.ny(days int, hhmm text) returns timestamptz language sql stable as $$
+  select ((date_trunc('week', now() at time zone 'America/New_York')::date + days) + hhmm::time) at time zone 'America/New_York';
+$$;
+grant execute on function tests.ny(int, text) to anon, authenticated;
+create temp table r (april uuid, jun uuid, blowout uuid, id uuid, other uuid) on commit drop;
+insert into r (april, jun, blowout) select
+  (select id from professionals where first_name = 'April'),
+  (select id from professionals where first_name = 'Jun'),
+  (select id from services where name = 'Blowout');
+grant all on r to authenticated;
+-- A confirmed booking with a saved card, Tuesday two weeks out at 11:00, and someone else's at 16:00.
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+update r set id = create_hold('10000000-0000-4000-a000-000000000001', april, array[blowout], tests.ny(15, '11:00'));
+reset role;
+update bookings set status = 'confirmed', payment_status = 'card_saved' where id = (select id from r);
+insert into bookings (business_id, professional_id, starts_at, ends_at, status, source)
+  values ('10000000-0000-4000-a000-000000000001', (select april from r), tests.ny(15, '16:00'), tests.ny(15, '16:45'), 'confirmed', 'walk_in');
+
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+do $$ begin
+  perform reschedule_booking((select id from r), (select april from r), tests.ny(15, '16:00'));
+  raise exception 'FAIL: rescheduled onto a taken time';
+exception when unique_violation then raise notice 'ok - rescheduling onto a taken time is refused';
+end $$;
+do $$ begin
+  perform reschedule_booking((select id from r), (select april from r), tests.ny(15, '11:10'));
+  raise exception 'FAIL: rescheduled off the 15-minute grid';
+exception when check_violation then raise notice 'ok - a new time must still follow the booking rules';
+end $$;
+select reschedule_booking((select id from r), (select jun from r), tests.ny(15, '14:00'));
+select tests.expect((select starts_at = tests.ny(15, '14:00') and ends_at = tests.ny(15, '14:45') and professional_id = (select jun from r)
+  from bookings where id = (select id from r)), 'a customer can move their booking to another free time and person');
+select tests.expect((select professional_id = (select jun from r) from booking_services where booking_id = (select id from r)),
+  'the services move to the new professional too');
+select tests.expect((select status = 'confirmed' and payment_status = 'card_saved' and subtotal_cents = 6000 from bookings where id = (select id from r)),
+  'rescheduling keeps the price and the saved card');
+reset role;
+
+select tests.as_user('00000000-0000-4000-a000-000000000001');
+set local role authenticated;
+do $$ begin
+  perform reschedule_booking((select id from r), (select april from r), tests.ny(15, '12:00'));
+  raise exception 'FAIL: someone else rescheduled the booking';
+exception when no_data_found then raise notice 'ok - nobody else can reschedule your booking';
+end $$;
+select tests.expect(public.owns_review_photo_path('reviews/00000000-0000-4000-a000-000000000001/a.jpg'), 'customers can add photos to their own review folder');
+select tests.expect(not public.owns_review_photo_path('reviews/00000000-0000-4000-a000-000000000002/a.jpg')
+  and not public.owns_review_photo_path('10000000-0000-4000-a000-000000000001/a.jpg'), 'but not to anyone else''s folder or a salon''s');
+reset role;
+
+-- Within 24 hours the booking can't be moved (it could dodge the late-cancel charge).
+update bookings set starts_at = now() + interval '3 hours', ends_at = now() + interval '3 hours 45 minutes' where id = (select id from r);
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+do $$ begin
+  perform reschedule_booking((select id from r), (select april from r), tests.ny(15, '12:00'));
+  raise exception 'FAIL: rescheduled inside 24 hours';
+exception when check_violation then raise notice 'ok - a booking less than 24 hours away can''t be moved';
+end $$;
+reset role;
+
+-- A review always belongs to its booking's salon and professional, whatever the phone sends.
+update bookings set status = 'completed', starts_at = now() - interval '3 hours', ends_at = now() - interval '2 hours 15 minutes'
+  where id = (select id from r);
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+insert into reviews (booking_id, business_id, customer_id, rating, tags)
+  values ((select id from r), '10000000-0000-4000-a000-000000000001', auth.uid(), 5, array['On time']);
+reset role;
+select tests.expect((select professional_id = (select jun from r) and business_id = '10000000-0000-4000-a000-000000000001'
+  from reviews where booking_id = (select id from r)), 'a review is filed under the booking''s salon and professional');
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+do $$ begin
+  insert into reviews (booking_id, business_id, customer_id, rating) values ((select id from r), '10000000-0000-4000-a000-000000000001', auth.uid(), 4);
+  raise exception 'FAIL: reviewed the same visit twice';
+exception when unique_violation then raise notice 'ok - one review per visit';
+end $$;
+reset role;
+rollback;
+
+\echo '— notifications (Phase 7)'
+begin;
+create or replace function tests.ny(days int, hhmm text) returns timestamptz language sql stable as $$
+  select ((date_trunc('week', now() at time zone 'America/New_York')::date + days) + hhmm::time) at time zone 'America/New_York';
+$$;
+grant execute on function tests.ny(int, text) to anon, authenticated;
+create temp table n (april uuid, jun uuid, blowout uuid, id uuid, walkin uuid) on commit drop;
+insert into n (april, jun, blowout) select
+  (select id from professionals where first_name = 'April'),
+  (select id from professionals where first_name = 'Jun'),
+  (select id from services where name = 'Blowout');
+grant all on n to authenticated;
+create temp view q as select kind::text, status, profile_id, send_after from notifications where booking_id = (select id from n);
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+update n set id = create_hold('10000000-0000-4000-a000-000000000001', april, array[blowout], tests.ny(15, '11:00'));
+reset role;
+select tests.expect(not exists (select 1 from q), 'a hold that isn''t confirmed sends nothing');
+update bookings set status = 'confirmed', payment_status = 'card_saved' where id = (select id from n);
+update bookings set status = 'confirmed' where id = (select id from n); -- e.g. the webhook confirming again
+select tests.expect((select array_agg(kind order by kind) from q) =
+  array['booking_confirmed', 'owner_new_booking', 'reminder_24h', 'reminder_2h', 'review_request'],
+  'confirming queues the confirmation, the owner''s alert, two reminders and the review request — once');
+select tests.expect((select send_after = tests.ny(15, '11:00') - interval '24 hours' from q where kind = 'reminder_24h')
+  and (select send_after = tests.ny(15, '11:45') + interval '2 hours' from q where kind = 'review_request'),
+  'reminders go out 24 hours before; the review request 2 hours after the visit');
+select tests.expect((select profile_id from q where kind = 'owner_new_booking') = '00000000-0000-4000-a000-000000000001',
+  'the salon owner gets the new-booking alert');
+
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+select reschedule_booking((select id from n), (select april from n), tests.ny(16, '11:00'));
+do $$ begin
+  perform 1 from notifications;
+  raise exception 'FAIL: a customer read the notifications outbox';
+exception when insufficient_privilege then raise notice 'ok - customers can''t read the notifications outbox';
+end $$;
+do $$ begin
+  perform claim_notifications(10);
+  raise exception 'FAIL: a customer claimed notifications';
+exception when insufficient_privilege then raise notice 'ok - only the server sends notifications';
+end $$;
+reset role;
+select tests.expect((select count(*) from q where kind in ('reminder_24h', 'reminder_2h', 'review_request') and status = 'skipped') = 3
+  and (select count(*) from q where kind in ('reminder_24h', 'reminder_2h', 'review_request') and status = 'pending') = 3
+  and exists (select 1 from q where kind = 'booking_moved') and exists (select 1 from q where kind = 'owner_moved'),
+  'moving a booking swaps the old reminders for new ones and tells both sides');
+
+-- Customer cancels: both told, reminders dropped.
+update bookings set status = 'cancelled', cancelled_by = '00000000-0000-4000-a000-000000000002', cancelled_at = now() where id = (select id from n);
+select tests.expect(exists (select 1 from q where kind = 'booking_cancelled') and exists (select 1 from q where kind = 'owner_cancelled')
+  and not exists (select 1 from q where kind like 'reminder%' and status = 'pending'),
+  'a cancellation tells the customer and the salon and drops the reminders');
+
+-- Salon cancels: the owner isn't told about their own cancellation.
+update n set id = null;
+select tests.as_user('00000000-0000-4000-a000-000000000002');
+set local role authenticated;
+update n set id = create_hold('10000000-0000-4000-a000-000000000001', april, array[blowout], tests.ny(15, '14:00'));
+reset role;
+update bookings set status = 'confirmed', payment_status = 'card_saved' where id = (select id from n);
+update bookings set status = 'cancelled', cancelled_by = '00000000-0000-4000-a000-000000000001', cancelled_at = now() where id = (select id from n);
+select tests.expect(exists (select 1 from q where kind = 'booking_cancelled') and not exists (select 1 from q where kind = 'owner_cancelled'),
+  'when the salon cancels, only the customer is told');
+
+-- Walk-ins are the salon's own: nothing is sent.
+with w as (
+  insert into bookings (business_id, professional_id, starts_at, ends_at, status, source)
+  values ('10000000-0000-4000-a000-000000000001', (select april from n), tests.ny(15, '16:00'), tests.ny(15, '16:45'), 'confirmed', 'walk_in')
+  returning id)
+update n set walkin = (select id from w);
+select tests.expect(not exists (select 1 from notifications where booking_id = (select walkin from n)), 'walk-ins send no notifications');
+select tests.expect(queue_daily_summaries() >= 0, 'the morning summary job runs');
+
+-- A phone's push token follows whoever signed in on it last.
+insert into push_tokens (profile_id, expo_token, platform) values ('00000000-0000-4000-a000-000000000002', 'ExponentPushToken[test]', 'ios');
+insert into push_tokens (profile_id, expo_token, platform) values ('00000000-0000-4000-a000-000000000001', 'ExponentPushToken[test]', 'ios');
+select tests.expect((select array_agg(profile_id::text) from push_tokens where expo_token = 'ExponentPushToken[test]') = array['00000000-0000-4000-a000-000000000001'],
+  'a push token moves to the person who signed in on that phone last');
+rollback;
+
 \echo '— rules every role must follow'
 begin;
 do $$ begin

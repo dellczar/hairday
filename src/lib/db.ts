@@ -6,8 +6,8 @@ import { addDemoSalons } from './demoSeed';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 import { getAvailableSlots, isLive } from './availability';
 import { zonedClock } from './hours';
-import { cancellationQuote, bookingTotals, isTipChoice } from './payments';
-import type { BusyTime, CardSetup, HoldRequest, PayoutsStatus, TableName, Tables, WalkInRequest } from './types';
+import { bookingTotals, canReschedule, cancellationQuote, FREE_CANCEL_HOURS, isTipChoice } from './payments';
+import type { BusyTime, CardSetup, HoldRequest, PayoutsStatus, ReviewRequest, TableName, Tables, WalkInRequest } from './types';
 
 /**
  * The few table operations the screens need, behind one small interface.
@@ -36,6 +36,10 @@ export interface Db {
   createHold(req: HoldRequest): Promise<string>;
   /** Lets go of the signed-in customer's hold. */
   releaseHold(bookingId: string): Promise<void>;
+  /** Moves the customer's confirmed booking to another free time, until 24 hours before (same services and price). */
+  rescheduleBooking(bookingId: string, professionalId: string, startsAt: string): Promise<void>;
+  /** Posts a review of a finished visit (one per visit). The server files it under that visit's salon and professional. */
+  postReview(req: ReviewRequest): Promise<void>;
   /** Review & pay: sets the tip and starts saving the customer's card (server function save-card). */
   startCardSetup(bookingId: string, tipPercent: number): Promise<CardSetup>;
   /** After the card is saved: the booking becomes confirmed (server function confirm-booking). */
@@ -117,6 +121,34 @@ function supabaseDb(): Db {
     },
     async releaseHold(bookingId) {
       check(await sb().rpc('release_hold', { p_booking: bookingId }));
+    },
+    async rescheduleBooking(bookingId, professionalId, startsAt) {
+      const { error } = await sb().rpc('reschedule_booking', {
+        p_booking: bookingId,
+        p_professional: professionalId,
+        p_starts_at: startsAt,
+      });
+      if (error) throw new Error(holdError(error));
+    },
+    async postReview(req) {
+      const { data: b } = await sb()
+        .from('bookings')
+        .select('business_id, professional_id, customer_id')
+        .eq('id', req.booking_id)
+        .maybeSingle();
+      if (!b) throw new Error('Booking not found.');
+      const { error } = await sb()
+        .from('reviews')
+        .insert({ ...req, business_id: b.business_id, professional_id: b.professional_id, customer_id: b.customer_id });
+      if (error) {
+        throw new Error(
+          error.code === '23505'
+            ? 'You’ve already reviewed this visit.'
+            : error.code === '42501'
+              ? 'You can review a visit once it’s finished.'
+              : friendlyDbError(error.message),
+        );
+      }
     },
     async startCardSetup(bookingId, tipPercent) {
       return callFunction<CardSetup>('save-card', {
@@ -241,6 +273,7 @@ const DEFAULTS: { [K in TableName]?: () => Partial<Tables[K]> } = {
     instagram: null,
     is_active: true,
   }),
+  reviews: () => ({ tags: [], body: null, photo_url: null, created_at: new Date().toISOString() }),
   business_photos: () => ({ sort_order: 0 }),
   professional_photos: () => ({ sort_order: 0 }),
   time_off: () => ({ note: null }),
@@ -391,6 +424,43 @@ export function createDemoDb(persist: Persist): Db {
         { status: 'cancelled', cancelled_at: now, cancelled_by: DEMO_USER_ID },
       );
     },
+    async rescheduleBooking(bookingId, professionalId, startsAt) {
+      const [b] = await api.select('bookings', { id: bookingId, customer_id: DEMO_USER_ID });
+      if (!b) throw new Error('Booking not found.');
+      if (b.status !== 'confirmed' || b.payment_status !== 'card_saved') throw new Error('This booking can’t be changed any more.');
+      if (!canReschedule(b, new Date()))
+        throw new Error(`It’s less than ${FREE_CANCEL_HOURS} hours away, so it can’t be moved. You can still cancel it.`);
+      const items = await api.select('booking_services', { booking_id: bookingId });
+      const { ends_at } = await demoCheckSlot(
+        api,
+        { business_id: b.business_id, professional_id: professionalId, service_ids: items.map((i) => i.service_id), starts_at: startsAt },
+        bookingId,
+      );
+      await api.update('bookings', { id: bookingId }, { professional_id: professionalId, starts_at: startsAt, ends_at });
+      await api.update('booking_services', { booking_id: bookingId }, { professional_id: professionalId });
+    },
+    async postReview(req) {
+      const [b] = await api.select('bookings', { id: req.booking_id, customer_id: DEMO_USER_ID });
+      if (!b || b.status !== 'completed') throw new Error('You can review a visit once it’s finished.');
+      if ((await api.select('reviews', { booking_id: b.id })).length) throw new Error('You’ve already reviewed this visit.');
+      const [r] = await api.insert('reviews', [
+        { ...req, business_id: b.business_id, professional_id: b.professional_id, customer_id: DEMO_USER_ID },
+      ]);
+      // What public_reviews would show everyone else.
+      await api.insert('public_reviews', [
+        {
+          id: r!.id,
+          business_id: b.business_id,
+          professional_id: b.professional_id,
+          rating: req.rating,
+          tags: req.tags,
+          body: req.body,
+          photo_url: req.photo_url,
+          created_at: r!.created_at,
+          reviewer_name: 'You (demo)',
+        },
+      ]);
+    },
     // Demo mode has no Stripe: "saving a card" is pretend and nothing is ever charged.
     async startCardSetup(bookingId, tipPercent) {
       if (!isTipChoice(tipPercent)) throw new Error('Pick a tip.');
@@ -506,8 +576,11 @@ async function demoBusyTimes(db: Db, businessId: string, from: string, to: strin
   ];
 }
 
-/** Demo version of create_hold(): the same checks, using the same slot calculator the screen uses. */
-async function demoCreateHold(db: Db, req: HoldRequest): Promise<string> {
+/**
+ * Demo version of bookable_end() plus the double-booking check: the same rules, using the same slot
+ * calculator the screen uses. `ignore` is a booking that's being moved (it doesn't block itself).
+ */
+async function demoCheckSlot(db: Db, req: HoldRequest, ignore?: string) {
   const [business] = await db.select('businesses', { id: req.business_id });
   if (!business) throw new Error('This salon isn’t taking bookings right now.');
   const services = (
@@ -531,23 +604,14 @@ async function demoCreateHold(db: Db, req: HoldRequest): Promise<string> {
     db.select('availability', { professional_id: req.professional_id }),
     db.select('breaks', { professional_id: req.professional_id }),
   ]);
-  // Your own hold doesn't count against you: holding a new time replaces it.
-  await db.update(
-    'bookings',
-    { customer_id: DEMO_USER_ID, status: 'pending_payment' },
-    {
-      status: 'cancelled',
-      cancelled_at: new Date().toISOString(),
-      cancelled_by: DEMO_USER_ID,
-    },
-  );
   const busy = await demoBusyTimes(
     db,
     req.business_id,
     new Date(new Date(req.starts_at).getTime() - 86_400_000).toISOString(),
     new Date(new Date(req.starts_at).getTime() + 2 * 86_400_000).toISOString(),
   );
-  const mine = busy.filter((b) => b.professional_id === req.professional_id);
+  const [moving] = ignore ? await db.select('bookings', { id: ignore }) : [];
+  const mine = busy.filter((b) => b.professional_id === req.professional_id && !(moving && sameStretch(b, moving)));
   const slots = getAvailableSlots({
     date,
     timeZone: business.time_zone,
@@ -568,7 +632,31 @@ async function demoCreateHold(db: Db, req: HoldRequest): Promise<string> {
   const slot = slots.find((s) => new Date(s.start).getTime() === new Date(req.starts_at).getTime());
   if (!slot) throw new Error('That time isn’t available. Pick another.');
   if (slot.booked) throw new Error('Someone just booked that time. Pick another.');
+  return { services, minutes, ends_at: new Date(new Date(req.starts_at).getTime() + minutes * 60_000).toISOString() };
+}
 
+/** The same busy stretch: how busy_times() reports a booking (it never shares ids). */
+export const sameStretch = (
+  a: { professional_id: string; starts_at: string; ends_at: string },
+  b: { professional_id: string; starts_at: string; ends_at: string },
+) =>
+  a.professional_id === b.professional_id &&
+  new Date(a.starts_at).getTime() === new Date(b.starts_at).getTime() &&
+  new Date(a.ends_at).getTime() === new Date(b.ends_at).getTime();
+
+/** Demo version of create_hold(). */
+async function demoCreateHold(db: Db, req: HoldRequest): Promise<string> {
+  // Your own hold doesn't count against you: holding a new time replaces it.
+  await db.update(
+    'bookings',
+    { customer_id: DEMO_USER_ID, status: 'pending_payment' },
+    {
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: DEMO_USER_ID,
+    },
+  );
+  const { services, minutes } = await demoCheckSlot(db, req);
   const price = services.reduce((sum, s) => sum + s.price_cents, 0);
   const [booking] = await db.insert('bookings', [
     {

@@ -1,5 +1,5 @@
-import { useFocusEffect } from 'expo-router';
-import { CalendarDays } from 'lucide-react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { CalendarDays, Star } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { useSession } from '@/hooks/useSession';
 import { formatTime, zonedClock } from '@/lib/hours';
 import { directionsUrl } from '@/lib/links';
 import { formatPrice } from '@/lib/money';
-import { cancellationQuote, FREE_CANCEL_HOURS } from '@/lib/payments';
+import { canReschedule, cancellationQuote, FREE_CANCEL_HOURS } from '@/lib/payments';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, fonts, radius, space } from '@/theme';
 
@@ -18,8 +18,8 @@ type Item = NonNullable<ReturnType<typeof useMyBookings>['data']>[number];
 type View_ = 'upcoming' | 'past';
 
 /**
- * My bookings (MyBookings.html), Phase 5 part: upcoming appointments with Directions and Cancel, and
- * past ones. Reschedule, reviews and "Book again" arrive in Phase 7.
+ * My bookings (MyBookings.html): upcoming appointments with Directions, Reschedule and Cancel; past
+ * ones with Leave a review and Book again.
  */
 export default function Bookings() {
   const insets = useSafeAreaInsets();
@@ -166,6 +166,13 @@ function UpcomingCard({ x, now, onCancel }: { x: Item; now: number; onCancel: ()
             </Pressable>
           ) : null}
           <Pressable
+            style={({ pressed }) => [styles.action, styles.actionLine, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`Reschedule ${x.services.join(', ')}`}
+            onPress={() => onReschedule(x, now)}>
+            <AppText style={styles.actionText}>Reschedule</AppText>
+          </Pressable>
+          <Pressable
             style={({ pressed }) => [styles.action, pressed && styles.pressed]}
             accessibilityRole="button"
             accessibilityLabel={`Cancel ${x.services.join(', ')}`}
@@ -181,6 +188,28 @@ function UpcomingCard({ x, now, onCancel }: { x: Item; now: number; onCancel: ()
       </AppText>
     </View>
   );
+}
+
+/** Pick a new time for the same services (allowed until 24 hours before, like free cancelling). */
+function onReschedule(x: Item, now: number) {
+  if (!canReschedule(x.booking, new Date(Math.max(now, Date.now())))) {
+    Alert.alert(
+      'Too late to move it',
+      `Bookings can be moved until ${FREE_CANCEL_HOURS} hours before. You can still cancel it, or call the salon.`,
+    );
+    return;
+  }
+  router.push({
+    pathname: '/book/[salonId]/time',
+    params: { salonId: x.booking.business_id, services: x.serviceIds.join(','), pro: x.booking.professional_id, reschedule: x.booking.id },
+  });
+}
+
+function bookAgain(x: Item) {
+  router.push({
+    pathname: '/book/[salonId]/time',
+    params: { salonId: x.booking.business_id, services: x.serviceIds.join(','), pro: x.booking.professional_id },
+  });
 }
 
 function PastCard({ x }: { x: Item }) {
@@ -207,6 +236,23 @@ function PastCard({ x }: { x: Item }) {
       <AppText variant="small" color={b.payment_status === 'failed' ? 'danger' : 'muted'}>
         {status}
       </AppText>
+      <View style={styles.pastButtons}>
+        {x.review ? (
+          <View style={styles.rated} accessible accessibilityLabel={`You rated ${x.review.rating} out of 5`}>
+            <Star size={14} color={colors.star} fill={colors.star} />
+            <AppText variant="small" color="muted">
+              You rated {x.review.rating}
+            </AppText>
+          </View>
+        ) : b.status === 'completed' ? (
+          <Button
+            title="Leave a review"
+            style={styles.smallBtn}
+            onPress={() => router.push({ pathname: '/review/[bookingId]', params: { bookingId: b.id } })}
+          />
+        ) : null}
+        <Button title="Book again" variant="secondary" style={styles.smallBtn} onPress={() => bookAgain(x)} />
+      </View>
     </View>
   );
 }
@@ -333,6 +379,9 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   center: { textAlign: 'center' },
   pastBody: { padding: 16, gap: 4 },
+  pastButtons: { flexDirection: 'row', gap: space.s, alignItems: 'center', marginTop: 8 },
+  smallBtn: { flex: 1, minHeight: 44, paddingHorizontal: 12 },
+  rated: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
   pastName: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 21 },
   sheetText: { fontSize: 15, lineHeight: 22 },
   bold: { fontFamily: fonts.semibold },
