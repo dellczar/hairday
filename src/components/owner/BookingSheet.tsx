@@ -6,6 +6,7 @@ import { formatDuration, formatTime, zonedClock } from '@/lib/hours';
 import { formatPrice } from '@/lib/money';
 import { amountDue, CHARGE_DELAY_MINUTES } from '@/lib/payments';
 import { colors, fonts, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 import { AppText } from '../AppText';
 import { Button } from '../Button';
@@ -60,7 +61,7 @@ export function BookingSheet({ booking, isNew, timeZone, now, onClose }: Props) 
       await mark.mutateAsync({ id: b.id, status });
       onClose();
     } catch (e) {
-      Alert.alert('Couldn’t save that', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t save that', errorText(e, 'Please try again.'));
     }
   };
   const confirmNoShow = () =>
@@ -88,7 +89,7 @@ export function BookingSheet({ booking, isNew, timeZone, now, onClose }: Props) 
               await cancel.mutateAsync(b.id);
               onClose();
             } catch (e) {
-              Alert.alert('Couldn’t cancel', e instanceof Error ? e.message : 'Please try again.');
+              Alert.alert('Couldn’t cancel', errorText(e, 'Please try again.'));
             }
           },
         },
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
   pair: { flexDirection: 'row', gap: space.s },
   flex1: { flex: 1 },
   badges: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: -space.s },
-  new: { fontFamily: fonts.semibold, fontSize: 11, letterSpacing: 0.8 },
+  new: { fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 0.8 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.bigCard,

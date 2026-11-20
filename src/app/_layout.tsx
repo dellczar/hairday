@@ -10,7 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useNotificationTaps } from '@/hooks/useNotificationTaps';
-import { SessionProvider } from '@/hooks/useSession';
+import { SessionProvider, useSession } from '@/hooks/useSession';
 import { APPLE_MERCHANT_ID, STRIPE_PUBLISHABLE_KEY } from '@/lib/stripe';
 import { colors } from '@/theme';
 
@@ -26,10 +26,6 @@ export default function RootLayout() {
     Inter_600SemiBold,
   });
 
-  useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync().catch(() => {});
-  }, [loaded, error]);
-
   if (!loaded && !error) return null;
 
   return (
@@ -38,6 +34,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} merchantIdentifier={APPLE_MERCHANT_ID} urlScheme="hairday">
             <SessionProvider>
+              <HideSplashWhenReady />
               <NotificationTaps />
               <StatusBar style="dark" />
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
@@ -47,6 +44,23 @@ export default function RootLayout() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+/**
+ * The logo stays up until fonts are loaded (above) and we know whether someone is signed in, so
+ * there's no blank screen in between. Never longer than 5 seconds, in case the check stalls.
+ */
+function HideSplashWhenReady() {
+  const { loading } = useSession();
+  useEffect(() => {
+    if (!loading) {
+      SplashScreen.hideAsync().catch(() => {});
+      return;
+    }
+    const t = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 5000);
+    return () => clearTimeout(t);
+  }, [loading]);
+  return null;
 }
 
 function NotificationTaps() {

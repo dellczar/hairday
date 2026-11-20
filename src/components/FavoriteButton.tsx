@@ -7,6 +7,7 @@ import { isFavorite, useFavorites, useToggleFavorite, type FavoriteTarget } from
 import { useSession } from '@/hooks/useSession';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 import { IconButton } from './IconButton';
 
@@ -35,7 +36,7 @@ export function FavoriteButton({ target, name, tone = 'light' }: Props) {
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    toggle.mutate(target, { onError: (e) => Alert.alert('Couldn’t save', e instanceof Error ? e.message : 'Try again.') });
+    toggle.mutate(target, { onError: (e) => Alert.alert('Couldn’t save', errorText(e, 'Try again.')) });
   };
 
   return (

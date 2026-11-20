@@ -1,9 +1,10 @@
 import * as Haptics from 'expo-haptics';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { colors, fonts, radius, space } from '@/theme';
 
 import { AppText } from './AppText';
+import { AnimatedPressable, usePressScale } from './pressScale';
 
 type Props = {
   label: string;
@@ -13,8 +14,9 @@ type Props = {
 
 /** Selectable pill (Filters.html): white with a line border, navy when selected. Haptic tick on select. */
 export function Chip({ label, selected = false, onPress }: Props) {
+  const press = usePressScale({}, 0.95);
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       hitSlop={{ top: 2, bottom: 2 }}
@@ -22,11 +24,13 @@ export function Chip({ label, selected = false, onPress }: Props) {
         Haptics.selectionAsync().catch(() => {});
         onPress?.();
       }}
-      style={({ pressed }) => [styles.base, selected ? styles.on : styles.off, pressed && { opacity: 0.85 }]}>
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[styles.base, selected ? styles.on : styles.off, press.style]}>
       <AppText variant="small" color={selected ? 'white' : 'ink'} style={styles.label}>
         {label}
       </AppText>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

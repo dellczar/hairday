@@ -12,6 +12,7 @@ import { addDays, formatDay, formatRange, fromMinutes, isoDate, toMinutes, WEEK,
 import { addTimeOff, removeTimeOff, saveSchedule, type BreakInput } from '@/lib/owner';
 import type { Availability, Break, BusinessHour, Professional } from '@/lib/types';
 import { colors, fonts, radius, space, touch } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 type Range = { start: number; end: number };
 type BreakDraft = { weekday: number | null; start: number; end: number };
@@ -136,7 +137,7 @@ function ScheduleEditor({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setDirty(false);
     } catch (e) {
-      Alert.alert('Couldn’t save', e instanceof Error ? e.message : 'Try again.');
+      Alert.alert('Couldn’t save', errorText(e, 'Try again.'));
     }
   };
 

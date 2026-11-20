@@ -18,6 +18,7 @@ import { createBusiness, replaceBusinessHours, updateBusiness, type DayHours } f
 import { pickPhoto } from '@/lib/photos';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 type Range = { start: number; end: number };
 const DEFAULT_RANGE: Range = { start: 10 * 60, end: 20 * 60 };
@@ -184,7 +185,7 @@ function SetupForm({ editing, business, savedHours }: { editing: boolean; busine
         router.replace('/(business)/(tabs)/business');
       }
     } catch (e) {
-      Alert.alert('Couldn’t save', e instanceof Error ? e.message : 'Try again.');
+      Alert.alert('Couldn’t save', errorText(e, 'Try again.'));
     }
   };
 

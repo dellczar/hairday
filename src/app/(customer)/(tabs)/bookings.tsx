@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Button, EmptyState, Headline, ModalSheet, SegmentedControl, Skeleton } from '@/components';
+import { AppText, BookingCardSkeleton, Button, EmptyState, Headline, ModalSheet, SegmentedControl } from '@/components';
 import { useCancelBooking, useMyBookings } from '@/hooks/useBooking';
 import { useSession } from '@/hooks/useSession';
 import { formatTime, zonedClock } from '@/lib/hours';
@@ -13,6 +13,7 @@ import { formatPrice } from '@/lib/money';
 import { canReschedule, cancellationQuote, FREE_CANCEL_HOURS } from '@/lib/payments';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, fonts, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 type Item = NonNullable<ReturnType<typeof useMyBookings>['data']>[number];
 type View_ = 'upcoming' | 'past';
@@ -77,7 +78,7 @@ export default function Bookings() {
               onChange={setTab}
             />
             {q.isPending ? (
-              <Skeleton height={170} />
+              <BookingCardSkeleton />
             ) : list.length === 0 ? (
               <EmptyState
                 icon={<CalendarDays color={colors.goldText} size={28} strokeWidth={1.8} />}
@@ -274,7 +275,7 @@ function CancelSheet({ item, now, onClose }: { item: Item; now: number; onClose:
         r.charged_cents > 0 ? `${formatPrice(r.charged_cents)} was charged to ${card}.` : 'Nothing was charged.',
       );
     } catch (e) {
-      Alert.alert('Couldn’t cancel', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t cancel', errorText(e, 'Please try again.'));
     }
   };
 
@@ -349,8 +350,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   month: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 15,
     fontFamily: fonts.semibold,
     letterSpacing: 1.2,
     color: colors.onGold,

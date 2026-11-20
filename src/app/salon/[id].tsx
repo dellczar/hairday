@@ -29,7 +29,9 @@ const TABS: { key: Tab; label: string }[] = [
 export default function SalonPage() {
   const { id, preview, pro: withPro } = useLocalSearchParams<{ id: string; preview?: string; pro?: string }>();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
+  const stackBar = fontScale >= 1.3;
+  const [barH, setBarH] = useState(0);
   const salon = useSalon(id);
   const origin = useOrigin(false);
   const [tab, setTab] = useState<Tab>('services');
@@ -114,7 +116,7 @@ export default function SalonPage() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: Math.max(120 + insets.bottom, barH + 24) }} showsVerticalScrollIndicator={false}>
         <View style={styles.gallery}>
           {photos.length ? (
             <FlatList
@@ -342,7 +344,10 @@ export default function SalonPage() {
         </View>
       </ScrollView>
 
-      <View style={[styles.bar, { paddingBottom: insets.bottom + 14 }]}>
+      {/* With large text the summary and button stack, so neither gets squeezed into a narrow column. */}
+      <View
+        onLayout={(e) => setBarH(e.nativeEvent.layout.height)}
+        style={[styles.bar, stackBar && styles.barStacked, { paddingBottom: insets.bottom + 14 }]}>
         <View style={styles.flex1}>
           <AppText variant="caption" color="muted">
             {picked.length ? `${picked.length} ${picked.length === 1 ? 'service' : 'services'}` : 'Choose a service'}
@@ -356,7 +361,7 @@ export default function SalonPage() {
           accessibilityState={{ disabled: !picked.length }}
           disabled={!picked.length}
           onPress={chooseTime}
-          style={({ pressed }) => [styles.cta, !picked.length && styles.ctaOff, pressed && { opacity: 0.88 }]}>
+          style={({ pressed }) => [styles.cta, stackBar && styles.ctaStacked, !picked.length && styles.ctaOff, pressed && { opacity: 0.88 }]}>
           <AppText variant="button" color="white">
             Choose a time
           </AppText>
@@ -476,4 +481,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaOff: { opacity: 0.4 },
+  barStacked: { flexDirection: 'column', alignItems: 'stretch', gap: space.s },
+  ctaStacked: { alignSelf: 'stretch' },
 });

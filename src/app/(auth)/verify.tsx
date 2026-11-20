@@ -10,6 +10,7 @@ import { CodeInput } from '@/components/CodeInput';
 import { sendEmailCode, verifyEmailCode } from '@/lib/auth';
 import { formatCountdown, OTP_LENGTH, RESEND_SECONDS } from '@/lib/otp';
 import { colors, fonts, radius, space, touch } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 export default function Verify() {
   const insets = useSafeAreaInsets();
@@ -39,7 +40,7 @@ export default function Verify() {
       // "List your business" goes on to Set up business; everyone else lands on Home.
       router.replace(intent === 'business' ? '/(business)/setup' : '/(customer)/(tabs)');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That code didn’t work.');
+      setError(errorText(e, 'That code didn’t work.'));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     } finally {
       setVerifying(false);
@@ -61,7 +62,7 @@ export default function Verify() {
       lastTried.current = '';
       setResent(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Couldn’t send a new code. Try again.');
+      setError(errorText(e, 'Couldn’t send a new code. Try again.'));
     }
   };
 

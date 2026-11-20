@@ -10,6 +10,7 @@ import { useMyBusiness } from '@/hooks/useOwner';
 import { getDb } from '@/lib/db';
 import { FREE_CANCEL_HOURS, LATE_CANCEL_SHARE } from '@/lib/payments';
 import { colors, fonts, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 type Step = { title: string; sub: string; state: 'done' | 'current' | 'todo' };
 
@@ -41,7 +42,7 @@ export default function Payouts() {
       if (r.url) await WebBrowser.openAuthSessionAsync(r.url, 'hairday://payouts');
       await refresh();
     } catch (e) {
-      Alert.alert('Couldn’t open Stripe', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t open Stripe', errorText(e, 'Please try again.'));
     } finally {
       setOpening(false);
     }

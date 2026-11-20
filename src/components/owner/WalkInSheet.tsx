@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/money';
 import { nextOpenTimes } from '@/lib/ownerDay';
 import type { BusinessHour, Client, Service } from '@/lib/types';
 import { colors, fonts, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 import { AppText } from '../AppText';
 import { Button } from '../Button';
@@ -100,7 +101,7 @@ function WalkInForm({ onClose, onAdded, businessId, timeZone, team, services, ho
       onAdded?.(id);
       onClose();
     } catch (e) {
-      Alert.alert('Couldn’t add it', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t add it', errorText(e, 'Please try again.'));
     }
   };
 

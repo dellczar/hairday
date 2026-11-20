@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { formatMiles } from '@/lib/geo';
 import { openStatus } from '@/lib/hours';
@@ -8,6 +8,7 @@ import type { SalonResult } from '@/lib/discovery';
 import { colors, fonts, radius, space } from '@/theme';
 
 import { AppText } from './AppText';
+import { AnimatedPressable, usePressScale } from './pressScale';
 
 type Props = {
   salon: SalonResult;
@@ -27,14 +28,17 @@ export function SalonCard({ salon, priceLabel, highlighted, now = new Date(), on
   const photos = [0, 1, 2].map((i) => salon.photos[i]?.url ?? null);
   const price = salon.fromPriceCents !== null ? formatPrice(salon.fromPriceCents) : null;
   const rating = salon.rating === null ? 'New on Hairday' : `Rated ${salon.rating.toFixed(1)}, ${salon.reviewCount} reviews`;
+  const press = usePressScale({}, 0.985);
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={[b.name, rating, meta, price && `${priceLabel ? `${priceLabel} from` : 'From'} ${price}`].filter(Boolean).join(', ')}
       accessibilityHint="Opens the salon page"
       onPress={onPress}
-      style={({ pressed }) => [styles.card, highlighted && styles.highlighted, pressed && { opacity: 0.92 }]}>
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[styles.card, highlighted && styles.highlighted, press.style]}>
       <View style={styles.photos}>
         {photos.map((uri, i) => (
           <View key={i} style={styles.photo}>
@@ -81,7 +85,7 @@ export function SalonCard({ salon, priceLabel, highlighted, now = new Date(), on
           </AppText>
         </View>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

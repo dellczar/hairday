@@ -87,6 +87,7 @@ export default function Today() {
           <Pressable
             onPress={() => router.push('/(business)/calendar')}
             accessibilityRole="button"
+            hitSlop={{ top: 4, bottom: 4 }}
             style={({ pressed }) => [styles.week, pressed && styles.pressed]}>
             <AppText style={styles.weekText}>Week view</AppText>
           </Pressable>
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
   cardDim: { opacity: 0.6 },
   gap: { backgroundColor: 'transparent', borderStyle: 'dashed', borderWidth: 1.5, borderColor: colors.placeholder },
   name: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 21 },
-  newTag: { fontFamily: fonts.semibold, fontSize: 11 },
+  newTag: { fontFamily: fonts.semibold, fontSize: 12 },
   proTag: { backgroundColor: colors.tint, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
   proText: { fontFamily: fonts.semibold, fontSize: 12 },
   add: { minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.gold, justifyContent: 'center' },

@@ -13,6 +13,7 @@ import { signInWithApple } from '@/lib/auth';
 import { links } from '@/lib/links';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, fonts, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 const HERO_HEIGHT = 400;
 
@@ -34,7 +35,7 @@ export default function Welcome() {
       const session = await signInWithApple();
       if (session) router.replace('/(customer)/(tabs)');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Apple sign-in didn’t work. Try again.');
+      setError(errorText(e, 'Apple sign-in didn’t work. Try again.'));
     } finally {
       setBusy(null);
     }

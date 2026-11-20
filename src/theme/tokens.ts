@@ -12,6 +12,7 @@ export const colors = {
   cardLine: '#ECE6DC', // card borders
   tint: '#F3EADB', // chips, info boxes (warm gold tint)
   placeholder: '#CBBFB2', // photo loading blocks
+  shimmer: 'rgba(255,255,255,0.35)', // light band sweeping across loading blocks
   photo: '#6B5A4C', // dark photo placeholder (Welcome hero)
   gold: '#F4A942', // logo gold: highlights, selected time, main CTA
   onGold: '#171826', // ALWAYS navy on gold (8.9:1). Never white on gold.
