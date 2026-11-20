@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CalendarX2, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Avatar, BackButton, EmptyState, IconButton, Skeleton } from '@/components';
@@ -50,6 +50,8 @@ export default function PickATime() {
   const salonId = params.salonId;
   const serviceIds = useMemo(() => (params.services ?? '').split(',').filter(Boolean), [params.services]);
   const insets = useSafeAreaInsets();
+  const stackBar = useWindowDimensions().fontScale >= 1.3;
+  const [barH, setBarH] = useState(0);
   const { session, signOut } = useSession();
 
   const moving = useHeldBooking(params.reschedule).data?.booking ?? null;
@@ -179,7 +181,7 @@ export default function PickATime() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: 120 + insets.bottom }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: Math.max(120 + insets.bottom, barH + 24) }]}>
         <View style={styles.header}>
           <BackButton />
           <View style={styles.flex1}>
@@ -363,7 +365,10 @@ export default function PickATime() {
         )}
       </ScrollView>
 
-      <View style={[styles.bar, { paddingBottom: insets.bottom + 14 }]}>
+      {/* With large text the summary and button stack, so neither gets squeezed into a narrow column. */}
+      <View
+        onLayout={(e) => setBarH(e.nativeEvent.layout.height)}
+        style={[styles.bar, stackBar && styles.barStacked, { paddingBottom: insets.bottom + 14 }]}>
         <View style={styles.flex1}>
           <AppText variant="caption" color="muted" numberOfLines={1}>
             {`${DOW[sel.dow]} ${sel.d} ${MONTHS[sel.m - 1]}`}
@@ -379,7 +384,7 @@ export default function PickATime() {
           accessibilityHint={params.reschedule ? 'Moves your booking to this time' : 'Holds this time for 10 minutes'}
           disabled={!current || busyNow || (!!params.reschedule && !moving)}
           onPress={cont}
-          style={({ pressed }) => [styles.cta, (!current || busyNow) && styles.ctaOff, pressed && { opacity: 0.88 }]}>
+          style={({ pressed }) => [styles.cta, stackBar && styles.ctaStacked, (!current || busyNow) && styles.ctaOff, pressed && { opacity: 0.88 }]}>
           <AppText variant="button" color="onGold">
             {params.reschedule ? (reschedule.isPending ? 'Moving…' : 'Move it here') : hold.isPending ? 'Holding…' : 'Continue'}
           </AppText>
@@ -454,4 +459,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaOff: { opacity: 0.45 },
+  barStacked: { flexDirection: 'column', alignItems: 'stretch', gap: space.s },
+  ctaStacked: { alignSelf: 'stretch' },
 });

@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { ActionSheetIOS, Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, BackButton, EmptyState, FiltersSheet, IconButton, SalonCard, SalonMap, Skeleton, type MapPin } from '@/components';
+import { AppText, BackButton, EmptyState, FiltersSheet, IconButton, SalonCard, SalonCardSkeleton, SalonMap, Skeleton, type MapPin } from '@/components';
 import { useListings, useOrigin } from '@/hooks/useDiscovery';
 import {
   activeFilterCount,
@@ -124,8 +124,8 @@ export default function Explore() {
         {listings.isPending ? (
           <>
             <Skeleton height={210} rounded={20} />
-            <Skeleton height={190} rounded={20} />
-            <Skeleton height={190} rounded={20} />
+            <SalonCardSkeleton />
+            <SalonCardSkeleton />
           </>
         ) : listings.isError ? (
           <EmptyState

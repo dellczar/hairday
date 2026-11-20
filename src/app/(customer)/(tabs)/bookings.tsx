@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Button, EmptyState, Headline, ModalSheet, SegmentedControl, Skeleton } from '@/components';
+import { AppText, BookingCardSkeleton, Button, EmptyState, Headline, ModalSheet, SegmentedControl } from '@/components';
 import { useCancelBooking, useMyBookings } from '@/hooks/useBooking';
 import { useSession } from '@/hooks/useSession';
 import { formatTime, zonedClock } from '@/lib/hours';
@@ -78,7 +78,7 @@ export default function Bookings() {
               onChange={setTab}
             />
             {q.isPending ? (
-              <Skeleton height={170} />
+              <BookingCardSkeleton />
             ) : list.length === 0 ? (
               <EmptyState
                 icon={<CalendarDays color={colors.goldText} size={28} strokeWidth={1.8} />}

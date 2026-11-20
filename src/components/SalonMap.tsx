@@ -49,7 +49,14 @@ function NativeMap({ pins, selectedId, onSelect, me, height = 210 }: Props) {
         initialRegion={region}
         region={region}
         showsUserLocation={!!me}
+        // Calm, quiet map like Results.html so the price pins stand out: Apple's muted style on
+        // iPhone, our own soft colors on Android (Google Maps), no shops, buildings or traffic.
+        mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
+        customMapStyle={Platform.OS === 'android' ? CALM_GOOGLE_STYLE : undefined}
         showsPointsOfInterests={false}
+        showsBuildings={false}
+        showsTraffic={false}
+        showsIndoors={false}
         showsCompass={false}
         toolbarEnabled={false}
         rotateEnabled={false}
@@ -73,6 +80,21 @@ function NativeMap({ pins, selectedId, onSelect, me, height = 210 }: Props) {
     </View>
   );
 }
+
+/** Google Maps style in the design's map colors (tokens mapLand / mapRoad / mapPark). */
+const CALM_GOOGLE_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: colors.mapLand }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: colors.muted }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: colors.mapRoad }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ visibility: 'on' }, { color: colors.mapPark }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: colors.mapRoad }] },
+  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: colors.surface }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: colors.tile3 }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+];
 
 /** The design's drawn map (streets + a park), with pins placed by their real positions. */
 function DrawnMap({ pins, selectedId, onSelect, height = 210 }: Props) {

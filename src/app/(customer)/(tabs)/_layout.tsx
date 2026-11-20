@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
 import { CalendarDays, House, Search, UserRound } from 'lucide-react-native';
 
-import { colors, fonts } from '@/theme';
+import { tabLabel } from '@/components';
+import { colors } from '@/theme';
 
 // Tab bar from Main.html: Home / Explore / Bookings / Profile on white, navy active, muted inactive.
 export default function CustomerTabs() {
@@ -12,7 +13,7 @@ export default function CustomerTabs() {
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.lineSoft },
-        tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 12 },
+        tabBarLabel: tabLabel,
         sceneStyle: { backgroundColor: colors.bg },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color }) => <House color={color} size={24} strokeWidth={1.8} /> }} />

@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Headline } from '@/components';
+import { AnimatedPressable, AppText, Headline, usePressScale } from '@/components';
 import { useMyBookings } from '@/hooks/useBooking';
 import { useOrigin } from '@/hooks/useDiscovery';
 import { categoryName, HOME_TILES } from '@/lib/discovery';
@@ -82,21 +82,30 @@ export default function Home() {
 
       <View style={styles.tiles}>
         {HOME_TILES.map((slug, i) => (
-          <Pressable
-            key={slug}
-            accessibilityRole="button"
-            accessibilityLabel={`${categoryName(slug)} salons`}
-            onPress={() => explore({ category: slug })}
-            style={({ pressed }) => [styles.tile, pressed && { opacity: 0.85 }]}>
-            <View style={[styles.tilePhoto, { backgroundColor: colors[TILE_COLORS[i] ?? 'placeholder'] }]} />
-            <AppText variant="caption" style={styles.medium}>
-              {categoryName(slug)}
-            </AppText>
-          </Pressable>
+          <Tile key={slug} name={categoryName(slug)} tone={TILE_COLORS[i] ?? 'placeholder'} onPress={() => explore({ category: slug })} />
         ))}
       </View>
       <NextAppointment />
     </ScrollView>
+  );
+}
+
+/** A service tile on Home: tan photo block (until category photos exist) and its name. */
+function Tile({ name, tone, onPress }: { name: string; tone: ColorName; onPress: () => void }) {
+  const press = usePressScale({}, 0.96);
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityLabel={`${name} salons`}
+      onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[styles.tile, press.style]}>
+      <View style={[styles.tilePhoto, { backgroundColor: colors[tone] }]} />
+      <AppText variant="caption" style={styles.medium}>
+        {name}
+      </AppText>
+    </AnimatedPressable>
   );
 }
 
@@ -112,6 +121,7 @@ function NextAppointment() {
     }, [refetch]),
   );
 
+  const press = usePressScale({}, 0.98);
   const next = (q.data ?? [])
     .filter((x) => x.booking.status === 'confirmed' && new Date(x.booking.ends_at).getTime() > now)
     .sort((a, b) => a.booking.starts_at.localeCompare(b.booking.starts_at))[0];
@@ -127,12 +137,14 @@ function NextAppointment() {
   const when = `${weekday}, ${time}${next.pro?.first_name ? ` with ${next.pro.first_name}` : ''}`;
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={`Your next appointment: ${what}, ${when}`}
       accessibilityHint="Opens My bookings"
       onPress={() => router.push('/(customer)/(tabs)/bookings')}
-      style={({ pressed }) => [styles.next, pressed && { opacity: 0.9 }]}>
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[styles.next, press.style]}>
       <View style={styles.date}>
         <AppText style={styles.month} color="onGold" maxFontSizeMultiplier={1.2}>
           {month}
@@ -153,7 +165,7 @@ function NextAppointment() {
         </AppText>
       </View>
       <ChevronRight size={20} strokeWidth={1.8} color={colors.onDark} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

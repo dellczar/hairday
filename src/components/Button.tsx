@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View, type PressableProps, type ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, type PressableProps, type ViewStyle } from 'react-native';
 
 import { colors, radius, space, touch, type ColorName } from '@/theme';
 
 import { AppText } from './AppText';
+import { AnimatedPressable, usePressScale } from './pressScale';
 
 /**
  * Button hierarchy (SPEC §5):
@@ -31,21 +32,25 @@ type Props = Omit<PressableProps, 'children' | 'style'> & {
   style?: ViewStyle;
 };
 
-export function Button({ title, variant = 'primary', icon, loading = false, disabled, style, ...rest }: Props) {
+export function Button({ title, variant = 'primary', icon, loading = false, disabled, style, onPressIn, onPressOut, ...rest }: Props) {
   const l = look[variant];
   const isDisabled = disabled || loading;
+  const press = usePressScale({ onPressIn, onPressOut });
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled: !!isDisabled, busy: loading }}
       disabled={isDisabled}
       {...rest}
-      style={({ pressed }) => [
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[
         styles.base,
         { backgroundColor: l.bg, borderColor: l.border ?? 'transparent', borderWidth: l.border ? 1 : 0 },
-        pressed && styles.pressed,
+        press.pressed && styles.pressed,
         isDisabled && styles.disabled,
         style,
+        press.style,
       ]}>
       {loading ? (
         <ActivityIndicator color={colors[l.fg]} />
@@ -57,7 +62,7 @@ export function Button({ title, variant = 'primary', icon, loading = false, disa
           </AppText>
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -75,6 +80,6 @@ const styles = StyleSheet.create({
   fill: { alignSelf: 'stretch' },
   // flexGrow (not flex: 1 or width 100%) so buttons that size to their label keep their natural width.
   fillText: { flexGrow: 1, textAlign: 'center' },
-  pressed: { opacity: 0.85 },
+  pressed: { opacity: 0.9 },
   disabled: { opacity: 0.45 },
 });

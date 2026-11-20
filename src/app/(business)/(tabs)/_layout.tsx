@@ -3,7 +3,8 @@ import { CalendarDays, Clock, Store, Users } from 'lucide-react-native';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useMyBusiness } from '@/hooks/useOwner';
-import { colors, fonts } from '@/theme';
+import { tabLabel } from '@/components';
+import { colors } from '@/theme';
 
 // Business tab bar (BizProfile.html): Today / Hours / Clients / Business.
 export default function BusinessTabs() {
@@ -25,7 +26,7 @@ export default function BusinessTabs() {
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.line },
-        tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 12 },
+        tabBarLabel: tabLabel,
         sceneStyle: { backgroundColor: colors.bg },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: ({ color }) => <CalendarDays color={color} size={22} strokeWidth={1.8} /> }} />
