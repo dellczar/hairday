@@ -8,6 +8,7 @@ import { normalizeEmail } from '@/lib/email';
 import { formatPhone } from '@/lib/phone';
 import type { Client } from '@/lib/types';
 import { colors, fonts, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 import { AppText } from '../AppText';
 import { Button } from '../Button';
@@ -89,7 +90,7 @@ function ImportForm({ onClose, businessId, existing }: Props) {
         r.skipped ? `${r.skipped} ${r.skipped === 1 ? 'was' : 'were'} already on your list.` : undefined,
       );
     } catch (e) {
-      Alert.alert('Couldn’t import', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t import', errorText(e, 'Please try again.'));
     }
   };
 

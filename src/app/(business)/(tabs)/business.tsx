@@ -14,6 +14,7 @@ import { addBusinessPhoto, removeBusinessPhoto, setBusinessLogo, updateBusiness 
 import { pickPhoto } from '@/lib/photos';
 import type { Business } from '@/lib/types';
 import { colors, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 /** Business profile (BizProfile.html). */
 export default function BusinessProfile() {
@@ -48,7 +49,7 @@ export default function BusinessProfile() {
     );
   }
 
-  const fail = (e: unknown) => Alert.alert('Couldn’t save', e instanceof Error ? e.message : 'Try again.');
+  const fail = (e: unknown) => Alert.alert('Couldn’t save', errorText(e, 'Try again.'));
   const proCount = team.data?.length ?? 0;
 
   return (
@@ -216,7 +217,7 @@ function AboutForm({ business, onClose }: { business: Business; onClose: () => v
       });
       onClose();
     } catch (err) {
-      Alert.alert('Couldn’t save', err instanceof Error ? err.message : 'Try again.');
+      Alert.alert('Couldn’t save', errorText(err, 'Try again.'));
     }
   };
 

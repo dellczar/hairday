@@ -13,6 +13,7 @@ import { formatPrice, parsePrice, priceError } from '@/lib/money';
 import { deleteService, reorderServices, saveService } from '@/lib/owner';
 import type { Category, Service } from '@/lib/types';
 import { colors, fonts, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 type Draft = { id?: string; category_id: string | null; name: string; price: string; duration: number; description: string; visible: boolean };
 
@@ -291,7 +292,7 @@ function EditForm({ draft, businessId, nextOrder, categories, onClose }: { draft
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       onClose();
     } catch (err) {
-      Alert.alert('Couldn’t save', err instanceof Error ? err.message : 'Try again.');
+      Alert.alert('Couldn’t save', errorText(err, 'Try again.'));
     }
   };
 

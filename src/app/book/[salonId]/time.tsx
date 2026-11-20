@@ -15,6 +15,7 @@ import { addDays, formatDuration, formatTime, zonedClock, zonedTimeToUtc } from 
 import { formatPrice } from '@/lib/money';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, fonts, radius, space, touch } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 const WEEKS_AHEAD = 8;
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -132,7 +133,7 @@ export default function PickATime() {
       } catch (e) {
         setPicked(null);
         void busy.refetch();
-        Alert.alert('Couldn’t move it', e instanceof Error ? e.message : 'Pick another time.');
+        Alert.alert('Couldn’t move it', errorText(e, 'Pick another time.'));
       }
       return;
     }
@@ -161,7 +162,7 @@ export default function PickATime() {
     } catch (e) {
       setPicked(null);
       void busy.refetch();
-      Alert.alert('That time is gone', e instanceof Error ? e.message : 'Pick another time.');
+      Alert.alert('That time is gone', errorText(e, 'Pick another time.'));
     }
   };
 

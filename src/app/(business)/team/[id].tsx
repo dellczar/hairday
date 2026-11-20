@@ -14,6 +14,7 @@ import { addProPhoto, deleteProfessional, removeProPhoto, saveProfessional } fro
 import { pickPhoto } from '@/lib/photos';
 import type { Business, Professional, ProRole, Service } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 /** Add / edit professional (Team.html). Route: /team/new or /team/<id>. */
 export default function ProfessionalEditor() {
@@ -81,7 +82,7 @@ function ProfessionalForm({ id, business: b, services, existing }: { id: string;
       // "Save and set hours" → Availability for this person.
       router.dismissTo({ pathname: '/(business)/(tabs)/hours', params: { pro: pro.id } });
     } catch (e) {
-      Alert.alert('Couldn’t save', e instanceof Error ? e.message : 'Try again.');
+      Alert.alert('Couldn’t save', errorText(e, 'Try again.'));
     }
   };
 
@@ -112,7 +113,15 @@ function ProfessionalForm({ id, business: b, services, existing }: { id: string;
         <ScreenHeader
           title={isNew ? 'Add professional' : 'Edit professional'}
           right={
-            <Pressable accessibilityRole="button" style={styles.preview} onPress={() => Alert.alert('Preview', 'You’ll see their page the way clients do once the professional page is built (next phase).')}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint="Opens their page the way clients see it"
+              style={styles.preview}
+              onPress={() =>
+                isNew
+                  ? Alert.alert('Save first', 'Save this person, then you can preview their page the way clients see it.')
+                  : router.push({ pathname: '/pro/[id]', params: { id } })
+              }>
               <AppText variant="smallStrong" style={styles.underline}>
                 Preview
               </AppText>

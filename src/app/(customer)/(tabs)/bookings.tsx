@@ -13,6 +13,7 @@ import { formatPrice } from '@/lib/money';
 import { canReschedule, cancellationQuote, FREE_CANCEL_HOURS } from '@/lib/payments';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, fonts, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 type Item = NonNullable<ReturnType<typeof useMyBookings>['data']>[number];
 type View_ = 'upcoming' | 'past';
@@ -274,7 +275,7 @@ function CancelSheet({ item, now, onClose }: { item: Item; now: number; onClose:
         r.charged_cents > 0 ? `${formatPrice(r.charged_cents)} was charged to ${card}.` : 'Nothing was charged.',
       );
     } catch (e) {
-      Alert.alert('Couldn’t cancel', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t cancel', errorText(e, 'Please try again.'));
     }
   };
 

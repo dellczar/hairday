@@ -7,6 +7,7 @@ import { AppText, BackButton, Button, Headline, Input } from '@/components';
 import { sendEmailCode } from '@/lib/auth';
 import { emailError, normalizeEmail } from '@/lib/email';
 import { colors, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 /**
  * Collects the email before the code screen. Not in the original designs (Welcome → Verify skips it);
@@ -31,7 +32,7 @@ export default function EmailStep() {
       await sendEmailCode(email);
       router.push({ pathname: '/(auth)/verify', params: { email: normalizeEmail(email), intent: intent ?? '' } });
     } catch (e) {
-      setServerError(e instanceof Error ? e.message : 'Something went wrong. Try again.');
+      setServerError(errorText(e, 'Something went wrong. Try again.'));
     } finally {
       setSending(false);
     }

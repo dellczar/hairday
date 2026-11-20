@@ -87,6 +87,7 @@ export default function Today() {
           <Pressable
             onPress={() => router.push('/(business)/calendar')}
             accessibilityRole="button"
+            hitSlop={{ top: 4, bottom: 4 }}
             style={({ pressed }) => [styles.week, pressed && styles.pressed]}>
             <AppText style={styles.weekText}>Week view</AppText>
           </Pressable>

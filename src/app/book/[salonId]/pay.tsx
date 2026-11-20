@@ -14,6 +14,7 @@ import { formatPrice } from '@/lib/money';
 import { bookingTotals, DEFAULT_TIP, TIP_CHOICES } from '@/lib/payments';
 import { STRIPE_RETURN_URL } from '@/lib/stripe';
 import { colors, fonts, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 /**
  * Review & pay (Confirm.html). The time is held for 10 minutes. "Confirm booking" saves the card with
@@ -125,7 +126,7 @@ export default function ReviewAndPay() {
           params: { salonId, booking: booking.id },
         });
     } catch (e) {
-      Alert.alert('Couldn’t confirm', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t confirm', errorText(e, 'Please try again.'));
     }
   };
 

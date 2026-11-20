@@ -12,6 +12,7 @@ import { getDb } from '@/lib/db';
 import { pickPhoto } from '@/lib/photos';
 import { MAX_REVIEW_LENGTH, RATING_WORDS, REVIEW_TAGS } from '@/lib/reviews';
 import { colors, fonts, radius, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 /** Leave a review (Review.html): stars with a word per level, quick tags, optional text and photo. */
 export default function LeaveReview() {
@@ -44,7 +45,7 @@ export default function LeaveReview() {
       close();
       Alert.alert('Thanks for your review', 'It helps other people find a great salon.');
     } catch (e) {
-      Alert.alert('Couldn’t post it', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t post it', errorText(e, 'Please try again.'));
     } finally {
       setUploading(false);
     }

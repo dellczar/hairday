@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { MapPin, Search } from 'lucide-react-native';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { ChevronRight, MapPin, Search } from 'lucide-react-native';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Headline } from '@/components';
+import { useMyBookings } from '@/hooks/useBooking';
 import { useOrigin } from '@/hooks/useDiscovery';
 import { categoryName, HOME_TILES } from '@/lib/discovery';
 import { colors, fonts, radius, space, type, type ColorName } from '@/theme';
@@ -94,8 +95,65 @@ export default function Home() {
           </Pressable>
         ))}
       </View>
-      {/* "Your next appointment" appears here once bookings exist (Phase 4). */}
+      <NextAppointment />
     </ScrollView>
+  );
+}
+
+/** "Your next appointment" card (Main.html): only when the customer has an upcoming booking. */
+function NextAppointment() {
+  const q = useMyBookings();
+  const [now, setNow] = useState(() => Date.now());
+  const { refetch } = q;
+  useFocusEffect(
+    useCallback(() => {
+      setNow(Date.now());
+      refetch();
+    }, [refetch]),
+  );
+
+  const next = (q.data ?? [])
+    .filter((x) => x.booking.status === 'confirmed' && new Date(x.booking.ends_at).getTime() > now)
+    .sort((a, b) => a.booking.starts_at.localeCompare(b.booking.starts_at))[0];
+  if (!next) return null;
+
+  const tz = next.business?.time_zone ?? 'America/New_York';
+  const d = new Date(next.booking.starts_at);
+  const month = d.toLocaleDateString('en-US', { timeZone: tz, month: 'short' }).toUpperCase();
+  const day = d.toLocaleDateString('en-US', { timeZone: tz, day: 'numeric' });
+  const weekday = d.toLocaleDateString('en-US', { timeZone: tz, weekday: 'short' });
+  const time = d.toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' });
+  const what = [next.services.join(', '), next.business?.name].filter(Boolean).join(' · ');
+  const when = `${weekday}, ${time}${next.pro?.first_name ? ` with ${next.pro.first_name}` : ''}`;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Your next appointment: ${what}, ${when}`}
+      accessibilityHint="Opens My bookings"
+      onPress={() => router.push('/(customer)/(tabs)/bookings')}
+      style={({ pressed }) => [styles.next, pressed && { opacity: 0.9 }]}>
+      <View style={styles.date}>
+        <AppText style={styles.month} color="onGold" maxFontSizeMultiplier={1.2}>
+          {month}
+        </AppText>
+        <AppText style={styles.day} color="onGold" maxFontSizeMultiplier={1.2}>
+          {day}
+        </AppText>
+      </View>
+      <View style={styles.nextText}>
+        <AppText variant="label" color="onDarkMuted">
+          Your next appointment
+        </AppText>
+        <AppText variant="bodyStrong" color="onDark" numberOfLines={2}>
+          {what}
+        </AppText>
+        <AppText variant="caption" color="onDarkMuted">
+          {when}
+        </AppText>
+      </View>
+      <ChevronRight size={20} strokeWidth={1.8} color={colors.onDark} />
+    </Pressable>
   );
 }
 
@@ -136,4 +194,17 @@ const styles = StyleSheet.create({
   tiles: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6, rowGap: space.m },
   tile: { width: '33.333%', paddingHorizontal: 6, gap: space.s },
   tilePhoto: { height: 84, borderRadius: radius.card },
+  next: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.ink,
+    borderRadius: radius.bigCard,
+    paddingVertical: 14,
+    paddingHorizontal: space.l,
+  },
+  date: { width: 52, height: 52, borderRadius: 14, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
+  month: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 15, letterSpacing: 1 },
+  day: { fontFamily: fonts.display, fontSize: 24, lineHeight: 26 },
+  nextText: { flex: 1, gap: 2 },
 });

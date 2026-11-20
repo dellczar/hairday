@@ -6,6 +6,7 @@ import { emailError, normalizeEmail } from '@/lib/email';
 import { formatPhone, phoneError } from '@/lib/phone';
 import type { Client } from '@/lib/types';
 import { fonts, space } from '@/theme';
+import { errorText } from '@/lib/errors';
 
 import { AppText } from '../AppText';
 import { Button } from '../Button';
@@ -56,7 +57,7 @@ function ClientForm({ onClose, businessId, client, onImport, onDeleted }: Props)
       });
       onClose();
     } catch (e) {
-      Alert.alert('Couldn’t save', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert('Couldn’t save', errorText(e, 'Please try again.'));
     }
   };
 
@@ -72,7 +73,7 @@ function ClientForm({ onClose, businessId, client, onImport, onDeleted }: Props)
             onClose();
             onDeleted?.();
           } catch (e) {
-            Alert.alert('Couldn’t remove', e instanceof Error ? e.message : 'Please try again.');
+            Alert.alert('Couldn’t remove', errorText(e, 'Please try again.'));
           }
         },
       },

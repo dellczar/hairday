@@ -79,7 +79,7 @@ export default function Calendar() {
         {team.map((m, i) => (
           <View key={m.id} style={[styles.head, colWidth ? { width: colWidth } : styles.flex1]}>
             <View style={[styles.ini, { backgroundColor: BLOCK_TONES[i % 3] }]}>
-              <AppText style={styles.iniText} maxFontSizeMultiplier={1}>
+              <AppText style={styles.iniText} maxFontSizeMultiplier={1.2}>
                 {initials(`${m.first_name} ${m.last_name ?? ''}`)}
               </AppText>
             </View>
