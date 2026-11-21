@@ -1,14 +1,18 @@
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import { ChevronRight, MapPin, Search } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { ChevronRight, MapPin, Search, Star } from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedPressable, AppText, Headline, usePressScale } from '@/components';
 import { useMyBookings } from '@/hooks/useBooking';
-import { useOrigin } from '@/hooks/useDiscovery';
-import { categoryName, HOME_TILES } from '@/lib/discovery';
+import { useListings, useOrigin } from '@/hooks/useDiscovery';
+import { categoryName, DEFAULT_FILTERS, HOME_TILES, search, type SalonResult } from '@/lib/discovery';
+import { formatMiles, type LatLng } from '@/lib/geo';
+import { formatPrice } from '@/lib/money';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { useSession } from '@/hooks/useSession';
 import { colors, fonts, radius, space, type, type ColorName } from '@/theme';
 
 const TILE_COLORS: ColorName[] = ['tile1', 'tile2', 'tile3', 'tile4', 'tile5', 'tile6'];
@@ -102,7 +106,113 @@ export default function Home() {
         ))}
       </View>
       <NextAppointment />
+      <PopularNearYou origin={origin.data?.point ?? null} />
+      <OwnerBanner />
     </ScrollView>
+  );
+}
+
+/** "Popular near you": the best-rated salons, swiped sideways. Hidden while loading or when there are none. */
+function PopularNearYou({ origin }: { origin: LatLng | null }) {
+  const listings = useListings();
+  const salons = useMemo(
+    () => search(listings.data ?? [], { ...DEFAULT_FILTERS, sort: 'top' }, origin).slice(0, 8),
+    [listings.data, origin],
+  );
+  if (!salons.length) return null;
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHead}>
+        <AppText style={styles.h2} accessibilityRole="header">
+          Popular near you
+        </AppText>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push({ pathname: '/(customer)/(tabs)/explore', params: { category: '', q: '' } })}
+          hitSlop={10}
+          style={styles.seeAll}>
+          <AppText variant="small" style={styles.medium}>
+            See all
+          </AppText>
+        </Pressable>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel} style={styles.bleed}>
+        {salons.map((s) => (
+          <PopularCard key={s.business.id} salon={s} />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function PopularCard({ salon }: { salon: SalonResult }) {
+  const press = usePressScale({}, 0.97);
+  const b = salon.business;
+  const photo = salon.photos[0]?.url;
+  const meta = [salon.rating !== null ? `${salon.rating.toFixed(1)} (${salon.reviewCount})` : 'New', salon.distance !== null ? formatMiles(salon.distance) : null]
+    .filter(Boolean)
+    .join(' · ');
+  const price = salon.fromPriceCents !== null ? `From ${formatPrice(salon.fromPriceCents)}` : null;
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityLabel={[b.name, salon.rating !== null ? `Rated ${salon.rating.toFixed(1)}` : 'New on Hairday', salon.distance !== null ? formatMiles(salon.distance) : null, price]
+        .filter(Boolean)
+        .join(', ')}
+      accessibilityHint="Opens the salon page"
+      onPress={() => router.push({ pathname: '/salon/[id]', params: { id: b.id } })}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[styles.popCard, press.style]}>
+      <View style={styles.popPhoto}>
+        {photo ? <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessible={false} /> : null}
+      </View>
+      <View style={styles.popText}>
+        <AppText variant="bodyStrong" numberOfLines={1}>
+          {b.name}
+        </AppText>
+        <View style={styles.popMeta}>
+          {salon.rating !== null ? <Star size={13} color={colors.star} fill={colors.star} strokeWidth={0} /> : null}
+          <AppText variant="caption" color="muted" numberOfLines={1} style={styles.flexShrink}>
+            {meta}
+          </AppText>
+        </View>
+        {price ? (
+          <AppText variant="caption" style={styles.medium}>
+            {price}
+          </AppText>
+        ) : null}
+      </View>
+    </AnimatedPressable>
+  );
+}
+
+/** "Own a salon?" banner: brings salon owners to sign-up. Hidden once someone is using Business mode. */
+function OwnerBanner() {
+  const { mode } = useSession();
+  const press = usePressScale({}, 0.98);
+  if (mode === 'business') return null;
+  return (
+    <View style={styles.owner}>
+      <AppText style={styles.ownerTitle} color="onDark">
+        Own a salon?
+      </AppText>
+      <AppText variant="small" color="onDarkMuted">
+        List your business on Hairday and let clients book you any time.
+      </AppText>
+      <AnimatedPressable
+        accessibilityRole="button"
+        onPress={() =>
+          isSupabaseConfigured ? router.push({ pathname: '/(auth)/email', params: { intent: 'business' } }) : router.push('/(business)/setup')
+        }
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
+        style={[styles.ownerBtn, press.style]}>
+        <AppText variant="button" color="onGold">
+          List your business
+        </AppText>
+      </AnimatedPressable>
+    </View>
   );
 }
 
@@ -238,4 +348,30 @@ const styles = StyleSheet.create({
   month: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 15, letterSpacing: 1 },
   day: { fontFamily: fonts.display, fontSize: 24, lineHeight: 26 },
   nextText: { flex: 1, gap: 2 },
+  section: { gap: space.m },
+  bleed: { marginHorizontal: -space.screen },
+  carousel: { paddingHorizontal: space.screen, gap: space.m },
+  popCard: {
+    width: 220,
+    backgroundColor: colors.surface,
+    borderRadius: radius.bigCard,
+    borderWidth: 1,
+    borderColor: colors.cardLine,
+    overflow: 'hidden',
+  },
+  popPhoto: { height: 130, backgroundColor: colors.placeholder },
+  popText: { padding: space.m, gap: 3 },
+  popMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  flexShrink: { flexShrink: 1 },
+  owner: { backgroundColor: colors.ink, borderRadius: radius.bigCard, padding: space.xl, gap: space.s },
+  ownerTitle: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32 },
+  ownerBtn: {
+    marginTop: space.s,
+    alignSelf: 'flex-start',
+    minHeight: 48,
+    paddingHorizontal: space.xl,
+    borderRadius: radius.pill,
+    backgroundColor: colors.gold,
+    justifyContent: 'center',
+  },
 });
