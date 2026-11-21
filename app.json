@@ -14,8 +14,7 @@
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
-      },
-      "icon": "./assets/images/icon-ios.png"
+      }
     },
     "android": {
       "package": "app.hairday",
