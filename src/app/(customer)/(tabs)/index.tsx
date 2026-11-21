@@ -13,6 +13,16 @@ import { colors, fonts, radius, space, type, type ColorName } from '@/theme';
 
 const TILE_COLORS: ColorName[] = ['tile1', 'tile2', 'tile3', 'tile4', 'tile5', 'tile6'];
 
+/** Category photos for the Home tiles (owner-supplied, Nov 2026). The tan color shows while each loads. */
+const TILE_PHOTOS: Record<(typeof HOME_TILES)[number], number> = {
+  haircut: require('../../../../assets/images/categories/haircut.jpg'),
+  braids: require('../../../../assets/images/categories/braids.jpg'),
+  nails: require('../../../../assets/images/categories/nails.jpg'),
+  eyelashes: require('../../../../assets/images/categories/eyelashes.jpg'),
+  brows: require('../../../../assets/images/categories/brows.jpg'),
+  makeup: require('../../../../assets/images/categories/makeup.jpg'),
+};
+
 /** Home (Main.html): logo + location, headline, search, 6 service tiles. */
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -82,7 +92,13 @@ export default function Home() {
 
       <View style={styles.tiles}>
         {HOME_TILES.map((slug, i) => (
-          <Tile key={slug} name={categoryName(slug)} tone={TILE_COLORS[i] ?? 'placeholder'} onPress={() => explore({ category: slug })} />
+          <Tile
+            key={slug}
+            name={categoryName(slug)}
+            photo={TILE_PHOTOS[slug]}
+            tone={TILE_COLORS[i] ?? 'placeholder'}
+            onPress={() => explore({ category: slug })}
+          />
         ))}
       </View>
       <NextAppointment />
@@ -90,8 +106,8 @@ export default function Home() {
   );
 }
 
-/** A service tile on Home: tan photo block (until category photos exist) and its name. */
-function Tile({ name, tone, onPress }: { name: string; tone: ColorName; onPress: () => void }) {
+/** A service tile on Home (Main.html): category photo, tan while it loads, and its name. */
+function Tile({ name, photo, tone, onPress }: { name: string; photo: number; tone: ColorName; onPress: () => void }) {
   const press = usePressScale({}, 0.96);
   return (
     <AnimatedPressable
@@ -101,7 +117,10 @@ function Tile({ name, tone, onPress }: { name: string; tone: ColorName; onPress:
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       style={[styles.tile, press.style]}>
-      <View style={[styles.tilePhoto, { backgroundColor: colors[tone] }]} />
+      <View style={[styles.tilePhoto, { backgroundColor: colors[tone] }]}>
+        {/* Decorative: the tile's label already names the category for screen readers. */}
+        <Image source={photo} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessible={false} />
+      </View>
       <AppText variant="caption" style={styles.medium}>
         {name}
       </AppText>
@@ -205,7 +224,7 @@ const styles = StyleSheet.create({
   seeAll: { minHeight: 32, justifyContent: 'center' },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6, rowGap: space.m },
   tile: { width: '33.333%', paddingHorizontal: 6, gap: space.s },
-  tilePhoto: { height: 84, borderRadius: radius.card },
+  tilePhoto: { height: 84, borderRadius: radius.card, overflow: 'hidden' },
   next: {
     flexDirection: 'row',
     alignItems: 'center',
