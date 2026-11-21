@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Image } from 'expo-image';
 import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
@@ -96,8 +97,64 @@ const CALM_GOOGLE_STYLE = [
   { featureType: 'administrative', elementType: 'geometry', stylers: [{ visibility: 'off' }] },
 ];
 
+/**
+ * Sample map picture of New York for testing on Android until the Google Maps key is added
+ * (OpenStreetMap tiles, zoom 12, tinted to the design's map colors). Pins are placed on it by
+ * their real latitude/longitude. Outside these bounds the drawn map is used instead.
+ */
+const SAMPLE_MAP = {
+  source: require('../../assets/images/sample-map-nyc.jpg'),
+  west: -74.1796875,
+  east: -73.740234375,
+  north: 40.84706035607122,
+  south: 40.6473035625225,
+};
+const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+
+function SampleImageMap({ pins, selectedId, onSelect, height = 210 }: Props) {
+  const m = SAMPLE_MAP;
+  const place = (p: LatLng) => ({
+    left: `${((p.lng - m.west) / (m.east - m.west)) * 100}%` as const,
+    top: `${((mercY(m.north) - mercY(p.lat)) / (mercY(m.north) - mercY(m.south))) * 100}%` as const,
+  });
+  return (
+    <View style={[styles.frame, styles.drawn, { height }]} accessibilityLabel="Map of salons near you">
+      <Image source={m.source} style={StyleSheet.absoluteFill} contentFit="fill" accessible={false} />
+      {pins.map((p) => {
+        const on = p.id === selectedId;
+        return (
+          <Pressable
+            key={p.id}
+            accessibilityRole="button"
+            accessibilityLabel={`${p.name}, from ${p.label}`}
+            accessibilityState={{ selected: on }}
+            hitSlop={8}
+            onPress={() => onSelect(p.id)}
+            style={[styles.drawnPin, place(p.point), on && { zIndex: 2 }]}>
+            <Pin label={p.label} on={on} />
+          </Pressable>
+        );
+      })}
+      <View style={styles.credit} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <AppText variant="label" color="muted" maxFontSizeMultiplier={1.2}>
+          © OpenStreetMap
+        </AppText>
+      </View>
+    </View>
+  );
+}
+
+const insideSample = (pins: MapPin[]) =>
+  pins.length > 0 &&
+  pins.every((p) => p.point.lng > SAMPLE_MAP.west && p.point.lng < SAMPLE_MAP.east && p.point.lat < SAMPLE_MAP.north && p.point.lat > SAMPLE_MAP.south);
+
 /** The design's drawn map (streets + a park), with pins placed by their real positions. */
-function DrawnMap({ pins, selectedId, onSelect, height = 210 }: Props) {
+function DrawnMap(props: Props) {
+  if (insideSample(props.pins)) return <SampleImageMap {...props} />;
+  return <PlainDrawnMap {...props} />;
+}
+
+function PlainDrawnMap({ pins, selectedId, onSelect, height = 210 }: Props) {
   const box = useMemo(() => {
     const lats = pins.map((p) => p.point.lat);
     const lngs = pins.map((p) => p.point.lng);
@@ -141,6 +198,7 @@ const styles = StyleSheet.create({
   road: { position: 'absolute', backgroundColor: colors.mapRoad },
   park: { position: 'absolute', left: '36%', top: '43%', width: 96, height: 52, borderRadius: 8, backgroundColor: colors.mapPark },
   drawnPin: { position: 'absolute', transform: [{ translateX: -24 }, { translateY: -14 }] },
+  credit: { position: 'absolute', left: 8, bottom: 6, backgroundColor: colors.bg, borderRadius: 6, paddingHorizontal: 6, opacity: 0.85 },
   pin: {
     backgroundColor: colors.surface,
     borderRadius: radius.pill,
