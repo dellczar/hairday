@@ -22,7 +22,8 @@
         "backgroundColor": "#171826",
         "foregroundImage": "./assets/images/adaptive-icon.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 1
     },
     "plugins": [
       "expo-router",
@@ -87,7 +88,8 @@
           "icon": "./assets/images/notification-icon.png",
           "color": "#171826"
         }
-      ]
+      ],
+      "./plugins/with-android-release.js"
     ],
     "experiments": {
       "typedRoutes": true,
