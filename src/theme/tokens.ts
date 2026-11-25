@@ -15,6 +15,7 @@ export const colors = {
   shimmer: 'rgba(255,255,255,0.35)', // light band sweeping across loading blocks
   photo: '#6B5A4C', // dark photo placeholder (Welcome hero)
   gold: '#F4A942', // logo gold: highlights, selected time, main CTA
+  goldGlass: 'rgba(244,169,66,0.55)', // see-through gold outline (intro swirl badge)
   onGold: '#171826', // ALWAYS navy on gold (8.9:1). Never white on gold.
   goldText: '#8F5A0E', // gold-coloured TEXT on light backgrounds (5.3:1)
   star: '#D58E39', // rating stars

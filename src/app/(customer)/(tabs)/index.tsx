@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedPressable, AppText, Headline, usePressScale } from '@/components';
 import { useMyBookings } from '@/hooks/useBooking';
 import { useListings, useOrigin } from '@/hooks/useDiscovery';
+import { useIntro } from '@/hooks/useIntro';
+import { CATEGORY_PHOTOS } from '@/lib/categoryPhotos';
 import { categoryName, DEFAULT_FILTERS, HOME_TILES, search, type SalonResult } from '@/lib/discovery';
 import { formatMiles, type LatLng } from '@/lib/geo';
 import { formatPrice } from '@/lib/money';
@@ -17,15 +19,6 @@ import { colors, fonts, radius, space, type, type ColorName } from '@/theme';
 
 const TILE_COLORS: ColorName[] = ['tile1', 'tile2', 'tile3', 'tile4', 'tile5', 'tile6'];
 
-/** Category photos for the Home tiles (owner-supplied, Nov 2026). The tan color shows while each loads. */
-const TILE_PHOTOS: Record<(typeof HOME_TILES)[number], number> = {
-  haircut: require('../../../../assets/images/categories/haircut.jpg'),
-  braids: require('../../../../assets/images/categories/braids.jpg'),
-  nails: require('../../../../assets/images/categories/nails.jpg'),
-  eyelashes: require('../../../../assets/images/categories/eyelashes.jpg'),
-  brows: require('../../../../assets/images/categories/brows.jpg'),
-  makeup: require('../../../../assets/images/categories/makeup.jpg'),
-};
 
 /** Home (Main.html): logo + location, headline, search, 6 service tiles. */
 export default function Home() {
@@ -99,7 +92,7 @@ export default function Home() {
           <Tile
             key={slug}
             name={categoryName(slug)}
-            photo={TILE_PHOTOS[slug]}
+            photo={CATEGORY_PHOTOS[slug]}
             tone={TILE_COLORS[i] ?? 'placeholder'}
             onPress={() => explore({ category: slug })}
           />
@@ -115,10 +108,15 @@ export default function Home() {
 /** "Popular near you": the best-rated salons, swiped sideways. Hidden while loading or when there are none. */
 function PopularNearYou({ origin }: { origin: LatLng | null }) {
   const listings = useListings();
-  const salons = useMemo(
-    () => search(listings.data ?? [], { ...DEFAULT_FILTERS, sort: 'top' }, origin).slice(0, 8),
-    [listings.data, origin],
-  );
+  // Services picked in the first-launch intro come first; everything else after.
+  const intro = useIntro().data;
+  const salons = useMemo(() => {
+    const interests = intro?.interests ?? [];
+    const all = search(listings.data ?? [], { ...DEFAULT_FILTERS, sort: 'top' }, origin);
+    if (!interests.length) return all.slice(0, 8);
+    const liked = new Set(search(listings.data ?? [], { ...DEFAULT_FILTERS, categories: interests, sort: 'top' }, origin).map((r) => r.business.id));
+    return [...all.filter((r) => liked.has(r.business.id)), ...all.filter((r) => !liked.has(r.business.id))].slice(0, 8);
+  }, [listings.data, origin, intro]);
   if (!salons.length) return null;
   return (
     <View style={styles.section}>
