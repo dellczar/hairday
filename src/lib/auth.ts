@@ -57,6 +57,57 @@ export async function signInWithApple(): Promise<Session | null> {
   }
 }
 
+/** Google's sign-in keys (public). Android only for now; iPhone also needs an iOS client ID. */
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '';
+
+/** True when this phone's build has the Google keys it needs. */
+export function isGoogleSignInReady(os: string): boolean {
+  if (!GOOGLE_WEB_CLIENT_ID) return false;
+  return os === 'android' || (os === 'ios' && !!GOOGLE_IOS_CLIENT_ID);
+}
+
+/**
+ * Sign in with Google (native account picker), then hand Google's token to Supabase.
+ * Returns null if the person closed the picker.
+ */
+export async function signInWithGoogle(): Promise<Session | null> {
+  if (!isSupabaseConfigured) throw new AuthNotConfiguredError();
+  const { GoogleSignin, isSuccessResponse, isErrorWithCode, statusCodes } = await import(
+    '@react-native-google-signin/google-signin'
+  );
+  GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID, iosClientId: GOOGLE_IOS_CLIENT_ID || undefined });
+  try {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const res = await GoogleSignin.signIn();
+    if (!isSuccessResponse(res)) return null;
+    const token = res.data.idToken;
+    if (!token) throw new Error('Google didn’t return a sign-in token. Try again.');
+    const supabase = getSupabase();
+    const { data, error } = await supabase.auth.signInWithIdToken({ provider: 'google', token });
+    if (error || !data.session) throw new Error('Google sign-in didn’t work. Try again, or continue with email.');
+    const { givenName, familyName } = res.data.user;
+    if (givenName || familyName) {
+      // Only fills an empty name, so a name the person typed in the app is kept.
+      await supabase
+        .from('profiles')
+        .update({ first_name: givenName, last_name: familyName })
+        .eq('id', data.session.user.id)
+        .is('first_name', null);
+    }
+    return data.session;
+  } catch (e) {
+    if (isErrorWithCode(e)) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED || e.code === statusCodes.IN_PROGRESS) return null;
+      if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        throw new Error('Google sign-in needs Google Play services on this phone. Continue with email instead.');
+      }
+      throw new Error('Google sign-in didn’t work. Try again, or continue with email.');
+    }
+    throw e;
+  }
+}
+
 function friendly(message: string): string {
   const m = message.toLowerCase();
   if (m.includes('expired') || m.includes('invalid')) return 'That code is wrong or has expired. Check the latest email, or send a new code.';

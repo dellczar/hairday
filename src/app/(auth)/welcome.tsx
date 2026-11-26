@@ -9,7 +9,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { AppText, Button, Headline } from '@/components';
 import { AppleIcon, GoogleIcon, MailIcon } from '@/components/icons';
 import { useSession } from '@/hooks/useSession';
-import { signInWithApple } from '@/lib/auth';
+import { isGoogleSignInReady, signInWithApple, signInWithGoogle } from '@/lib/auth';
 import { links } from '@/lib/links';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { colors, fonts, radius, space } from '@/theme';
@@ -20,7 +20,7 @@ const HERO_HEIGHT = 400;
 export default function Welcome() {
   const insets = useSafeAreaInsets();
   const { setGuest } = useSession();
-  const [busy, setBusy] = useState<'apple' | null>(null);
+  const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const skip = () => {
@@ -41,9 +41,22 @@ export default function Welcome() {
     }
   };
 
-  const google = () => {
-    // Needs the Google Cloud sign-in keys from Phase 0 before the native Google SDK can be added.
-    setError('Google sign-in is coming soon. For now, continue with email.');
+  const google = async () => {
+    setError(null);
+    // iPhone needs its own Google key (comes with the Apple Developer account).
+    if (!isGoogleSignInReady(Platform.OS)) {
+      setError('Google sign-in is coming soon on this phone. For now, continue with email.');
+      return;
+    }
+    setBusy('google');
+    try {
+      const session = await signInWithGoogle();
+      if (session) router.replace('/(customer)/(tabs)');
+    } catch (e) {
+      setError(errorText(e, 'Google sign-in didn’t work. Try again.'));
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
@@ -92,7 +105,13 @@ export default function Welcome() {
             onPress={apple}
           />
         ) : null}
-        <Button variant="outlineDark" title="Continue with Google" icon={<GoogleIcon color={colors.onDark} />} onPress={google} />
+        <Button
+          variant="outlineDark"
+          title="Continue with Google"
+          icon={<GoogleIcon color={colors.onDark} />}
+          loading={busy === 'google'}
+          onPress={google}
+        />
         <Button
           variant="outlineDark"
           title="Continue with email"
