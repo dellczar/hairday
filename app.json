@@ -97,6 +97,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "hasAndroidMapsKey": false,
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "cad9905b-7579-4911-b2b2-810d78a881ef"
+      }
+    },
+    "owner": "hairday"
   }
 }

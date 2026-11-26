@@ -42,3 +42,8 @@ supabase/.branches/
 
 # Old web prototype (kept locally, not part of the app)
 hairday.html
+
+# Firebase settings for Android push (kept on this Mac, not in the repo)
+google-services.json
+# Firebase private key for push (never commit)
+*firebase-adminsdk*.json
