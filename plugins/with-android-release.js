@@ -2,8 +2,9 @@
 // 1) Signs release builds with the HairDay upload key when its settings file exists on this Mac
 //    (~/.hairday-keys/upload-key.properties, or the path in HAIRDAY_UPLOAD_PROPERTIES). The key and
 //    its passwords never go into the repo; without the file, release builds fall back to the debug key.
-// 2) Lets the app shrink (R8) without failing on Stripe's optional "add card to wallet" classes,
-//    which Hairday doesn't use.
+// 2) Keeps a -dontwarn for Stripe's optional "add card to wallet" classes in case shrinking (R8) is turned on again;
+//    shrinking is OFF (app.json expo-build-properties) because it removed WorkManager's database and crashed
+//    the first Play build on launch. (Hairday doesn't use the Stripe wallet classes.)
 const fs = require('fs');
 const path = require('path');
 const { withAppBuildGradle, withDangerousMod } = require('expo/config-plugins');
