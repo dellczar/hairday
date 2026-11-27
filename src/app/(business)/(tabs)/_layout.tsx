@@ -3,12 +3,14 @@ import { CalendarDays, Clock, Store, Users } from 'lucide-react-native';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useMyBusiness } from '@/hooks/useOwner';
-import { tabLabel } from '@/components';
+import { tabLabel, useTabBarStyle } from '@/components';
 import { colors } from '@/theme';
 
 // Business tab bar (BizProfile.html): Today / Hours / Clients / Business.
 export default function BusinessTabs() {
   const business = useMyBusiness();
+  // Hooks run before the early returns below.
+  const tabBarStyle = useTabBarStyle(colors.line);
   if (business.isPending) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}>
@@ -25,7 +27,7 @@ export default function BusinessTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.line },
+        tabBarStyle,
         tabBarLabel: tabLabel,
         sceneStyle: { backgroundColor: colors.bg },
       }}>

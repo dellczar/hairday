@@ -30,4 +30,4 @@ export { SalonMap, type MapPin } from './SalonMap';
 export { FiltersSheet } from './FiltersSheet';
 export { ReviewCard, timeAgo } from './ReviewCard';
 export { AnimatedPressable, usePressScale } from './pressScale';
-export { tabLabel } from './TabLabel';
+export { tabLabel, useTabBarStyle } from './TabLabel';

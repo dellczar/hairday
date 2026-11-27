@@ -1,18 +1,19 @@
 import { Tabs } from 'expo-router';
 import { CalendarDays, House, Search, UserRound } from 'lucide-react-native';
 
-import { tabLabel } from '@/components';
+import { tabLabel, useTabBarStyle } from '@/components';
 import { colors } from '@/theme';
 
 // Tab bar from Main.html: Home / Explore / Bookings / Profile on white, navy active, muted inactive.
 export default function CustomerTabs() {
+  const tabBarStyle = useTabBarStyle(colors.lineSoft);
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.lineSoft },
+        tabBarStyle,
         tabBarLabel: tabLabel,
         sceneStyle: { backgroundColor: colors.bg },
       }}>
