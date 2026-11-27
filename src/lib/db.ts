@@ -46,6 +46,8 @@ export interface Db {
   confirmBooking(bookingId: string): Promise<void>;
   /** Cancels, charging what the rules say; returns the cents charged (server function cancel-booking). */
   cancelBooking(bookingId: string): Promise<{ charged_cents: number }>;
+  /** Deletes the signed-in account and its data (server function delete-account). Refuses while a booking is upcoming or unpaid. */
+  deleteAccount(): Promise<void>;
   /** Payouts: a Stripe onboarding link ('start') or where setup stands ('status'). */
   payouts(businessId: string, action: 'start'): Promise<{ url?: string } & Partial<PayoutsStatus>>;
   payouts(businessId: string, action: 'status'): Promise<PayoutsStatus>;
@@ -163,6 +165,9 @@ function supabaseDb(): Db {
       return callFunction<{ charged_cents: number }>('cancel-booking', {
         booking_id: bookingId,
       });
+    },
+    async deleteAccount() {
+      await callFunction('delete-account', {});
     },
     payouts: ((businessId: string, action: 'start' | 'status') =>
       callFunction('connect-onboarding', {
@@ -497,6 +502,10 @@ export function createDemoDb(persist: Persist): Db {
         { id: bookingId },
         { status: 'confirmed', payment_status: 'card_saved', card_label: 'Visa ending 4242 (demo)', client_id: client.id },
       );
+    },
+    async deleteAccount() {
+      // Demo mode has no account: start the phone's demo data over instead.
+      await resetDemoData();
     },
     async cancelBooking(bookingId) {
       const [b] = await api.select('bookings', { id: bookingId });

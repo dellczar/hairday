@@ -732,4 +732,22 @@ end $$;
 select tests.expect((select count(*) from profiles) = (select count(*) from auth.users), 'every account got a profile row');
 rollback;
 
+\echo '— deleting an account (delete-account server function → auth.admin.deleteUser)'
+begin;
+-- owner2 (…0003) owns Hidden Salon, had a visit at a seed salon (booking …0002), reviewed it and saved a favorite.
+insert into reviews (booking_id, business_id, professional_id, customer_id, rating)
+  select id, business_id, professional_id, customer_id, 5 from bookings where id = '30000000-0000-4000-a000-000000000002';
+insert into favorites (customer_id, business_id) values ('00000000-0000-4000-a000-000000000003', '10000000-0000-4000-a000-000000000001');
+delete from auth.users where id = '00000000-0000-4000-a000-000000000003';
+select tests.expect(not exists (select 1 from profiles where id = '00000000-0000-4000-a000-000000000003'), 'deleting the account deletes the profile');
+select tests.expect(not exists (select 1 from businesses where id = '10000000-0000-4000-a000-000000000099'), 'their salon is deleted with them');
+select tests.expect(not exists (select 1 from professionals where business_id = '10000000-0000-4000-a000-000000000099'), 'their salon''s team is deleted');
+select tests.expect(not exists (select 1 from favorites where customer_id = '00000000-0000-4000-a000-000000000003'), 'their favorites are deleted');
+select tests.expect(not exists (select 1 from reviews where customer_id = '00000000-0000-4000-a000-000000000003'), 'their reviews are deleted');
+select tests.expect(
+  (select customer_id is null from bookings where id = '30000000-0000-4000-a000-000000000002'),
+  'their past booking at another salon stays, without their name');
+select tests.expect(exists (select 1 from businesses where id = '10000000-0000-4000-a000-000000000001'), 'other salons are untouched');
+rollback;
+
 \echo 'All RLS tests passed.'

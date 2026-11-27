@@ -1,7 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
-import { Bell, ChevronRight, CircleHelp, Heart } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { Bell, ChevronRight, CircleHelp, FileText, Heart, Shield } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,9 +16,9 @@ import { useSession } from '@/hooks/useSession';
 import { getDb, resetDemoData } from '@/lib/db';
 import { links } from '@/lib/links';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { colors, space } from '@/theme';
+import { colors, fonts, space } from '@/theme';
 
-// Profile (Profile.html). Delete account arrives in Phase 8.
+// Profile (Profile.html), with Privacy Policy, Terms and Delete account (SPEC §10, §13).
 export default function Profile() {
   const insets = useSafeAreaInsets();
   const { session, signOut, setMode } = useSession();
@@ -34,6 +35,7 @@ export default function Profile() {
   const favPros = favorites.data?.pros ?? [];
   const notify = useNotifySettings();
   const [remindersOpen, setRemindersOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const n = notify.data;
   const remindersLabel = !n
     ? ''
@@ -124,6 +126,16 @@ export default function Profile() {
           icon={<CircleHelp size={20} strokeWidth={1.8} color={colors.ink} />}
           onPress={() => Linking.openURL(links.support).catch(() => {})}
         />
+        <ListRow
+          label="Privacy Policy"
+          icon={<Shield size={20} strokeWidth={1.8} color={colors.ink} />}
+          onPress={() => WebBrowser.openBrowserAsync(links.privacy).catch(() => {})}
+        />
+        <ListRow
+          label="Terms"
+          icon={<FileText size={20} strokeWidth={1.8} color={colors.ink} />}
+          onPress={() => WebBrowser.openBrowserAsync(links.terms).catch(() => {})}
+        />
       </ListGroup>
 
       <Pressable
@@ -191,10 +203,26 @@ export default function Profile() {
         </Pressable>
       ) : null}
 
-      <AppText variant="caption" color="muted" style={styles.center}>
-        Account deletion comes with the store release (Phase 8).
-      </AppText>
+      {signedIn ? (
+        <Pressable accessibilityRole="button" style={styles.link} onPress={() => setDeleteOpen(true)}>
+          <AppText variant="caption" color="muted" style={styles.underline}>
+            Delete account
+          </AppText>
+        </Pressable>
+      ) : null}
       <RemindersSheet visible={remindersOpen} onClose={() => setRemindersOpen(false)} />
+      <DeleteAccountSheet
+        visible={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        hasBusiness={hasBusiness}
+        onDeleted={async () => {
+          setDeleteOpen(false);
+          await signOut();
+          qc.clear();
+          router.replace('/(auth)/welcome');
+          Alert.alert('Account deleted', 'Your Hairday account and its information have been deleted.');
+        }}
+      />
     </ScrollView>
   );
 }
@@ -227,6 +255,62 @@ function RemindersSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   );
 }
 
+/** Profile → Delete account: says what goes, "Keep my account" first, then the server does it. */
+function DeleteAccountSheet({
+  visible,
+  onClose,
+  hasBusiness,
+  onDeleted,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  hasBusiness: boolean;
+  onDeleted: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const onYes = async () => {
+    setBusy(true);
+    try {
+      await getDb().deleteAccount();
+      onDeleted();
+    } catch (e) {
+      Alert.alert('Couldn’t delete your account', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <ModalSheet
+      visible={visible}
+      onClose={onClose}
+      title="Delete your account?"
+      footer={
+        <View style={styles.sheetButtons}>
+          <Button title="Keep my account" onPress={onClose} disabled={busy} />
+          <Pressable
+            onPress={onYes}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityState={{ busy }}
+            style={({ pressed }) => [styles.yes, pressed && { opacity: 0.7 }]}>
+            <AppText style={styles.actionText} color="goldText">
+              {busy ? 'Deleting…' : 'Yes, delete my account'}
+            </AppText>
+          </Pressable>
+        </View>
+      }>
+      <AppText color="inkSoft" style={styles.sheetText}>
+        This permanently deletes your profile, favorites, reviews, saved cards and notification settings.
+        {hasBusiness ? ' Your salon’s listing, services, team, photos and booking history are deleted too.' : ''} It can’t be
+        undone.
+      </AppText>
+      <AppText color="inkSoft" style={styles.sheetText}>
+        Upcoming bookings need to be cancelled first. Records of past payments are kept without your name, as the law requires.
+      </AppText>
+    </ModalSheet>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: space.screen, paddingBottom: space.xxl * 2, gap: space.l },
@@ -237,10 +321,12 @@ const styles = StyleSheet.create({
   ownTitle: { fontSize: 22, lineHeight: 24 },
   link: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
   underline: { textDecorationLine: 'underline' },
-  center: { textAlign: 'center' },
   section: { gap: space.s },
   favPhoto: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.placeholder },
   favEmpty: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.tint, borderRadius: 16, padding: 14 },
   flexText: { flex: 1 },
   sheetText: { fontSize: 15, lineHeight: 22 },
+  sheetButtons: { gap: space.s },
+  yes: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  actionText: { fontFamily: fonts.semibold, fontSize: 14 },
 });
